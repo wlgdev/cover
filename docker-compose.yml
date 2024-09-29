@@ -1,0 +1,19 @@
+services:
+  nginx:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    ports:
+      - 80:80
+    restart: unless-stopped
+    environment:
+      - TZ=Europe/Moscow
+
+networks:
+  nginx:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 173.17.210.0/24
+          gateway: 173.17.210.1
