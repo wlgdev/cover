@@ -46,12 +46,19 @@ runs:
         EOF
         ssh-keyscan -H ${{ inputs.ssh_private_host }} >> ~/.ssh/known_hosts
 
+#    - id: copy
+#      name: copy files fia ssh
+#      shell: bash
+#      run: |
+#        ssh -o StrictHostKeyChecking=no sshserver "mkdir -p /data/compose/cover/"
+#        scp -o StrictHostKeyChecking=no -r ./ sshserver:/data/compose/cover/
+
     - id: copy
       name: copy files fia ssh
       shell: bash
       run: |
-        ssh -o StrictHostKeyChecking=no sshserver "mkdir -p /data/compose/cover/"
-        scp -o StrictHostKeyChecking=no -r ./ sshserver:/data/compose/cover/
+        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa -l ${{ inputs.ssh_private_user }} -p ${{ inputs.ssh_private_port }} ${{ inputs.ssh_private_host }} "mkdir -p /data/compose/cover/"
+        rsync -avz --exclude './src' -e "ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa -p ${{ inputs.ssh_private_port }}" ./ ${{ inputs.ssh_private_user }}@${{ inputs.ssh_private_host }}:/data/compose/cover/
 
 # -> create network
 # -> copy sources by ssh
