@@ -98,9 +98,9 @@ runs:
         OUTPUT_FILE="docker-compose.override.yml"
         
         in_services_block=false
-        echo "networks:"
-        echo "  ${{ steps.setup.outputs.network }}:"
-        echo "    external: true"
+        echo "networks:" > "$OUTPUT_FILE"
+        echo "  ${{ steps.setup.outputs.network }}:" > "$OUTPUT_FILE"
+        echo "    external: true" > "$OUTPUT_FILE"
         echo "services:" > "$OUTPUT_FILE"
         while IFS= read -r line; do
           # Detect start of services block
@@ -123,7 +123,7 @@ runs:
                 echo "    labels:"
                 echo "      - \"$service.static.property=true\""
                 echo "      - \"traefik.enable=true\""
-                echo "      - \"traefik.http.routers.$service.rule=Host(`${{ steps.setup.outputs.domain }}`)\""
+                echo "      - \"traefik.http.routers.$service.rule=Host(\`${{ steps.setup.outputs.domain }}\`)\""
                 echo "      - \"traefik.http.routers.$service.entrypoints=websecure\""
                 echo "      - \"traefik.http.routers.$service.tls.certresolver=letsencrypt\""
                 echo "      - \"traefik.http.services.$service.loadbalancer.server.port=${{ steps.setup.outputs.port }}\""
