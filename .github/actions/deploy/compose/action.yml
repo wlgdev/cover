@@ -86,8 +86,8 @@ runs:
         echo "TARGET HOST  = $TARGET_HOST"
         echo "TARGET PORT  = $TARGET_PORT"
 
-    - id: compose
-      name: create docker compose for remote deployment
+    - id: compose-override
+      name: create docker override compose
       shell: bash
       run: |
         echo ""
@@ -98,10 +98,10 @@ runs:
         OUTPUT_FILE="docker-compose.override.yml"
         
         in_services_block=false
-        echo "networks:" > "$OUTPUT_FILE"
-        echo "  ${{ steps.setup.outputs.network }}:" > "$OUTPUT_FILE"
-        echo "    external: true" > "$OUTPUT_FILE"
-        echo "services:" > "$OUTPUT_FILE"
+        echo "networks:" >> "$OUTPUT_FILE"
+        echo "  ${{ steps.setup.outputs.network }}:" >> "$OUTPUT_FILE"
+        echo "    external: true" >> "$OUTPUT_FILE"
+        echo "services:" >> "$OUTPUT_FILE"
         while IFS= read -r line; do
           # Detect start of services block
           if [[ "$line" =~ ^services: ]]; then
@@ -121,7 +121,6 @@ runs:
               if [ "$service" == "${{ steps.setup.outputs.host }}" ]; then
                 echo "  $service:"
                 echo "    labels:"
-                echo "      - \"$service.static.property=true\""
                 echo "      - \"traefik.enable=true\""
                 echo "      - \"traefik.http.routers.$service.rule=Host(\`${{ steps.setup.outputs.domain }}\`)\""
                 echo "      - \"traefik.http.routers.$service.entrypoints=websecure\""
@@ -137,19 +136,19 @@ runs:
         echo "Generated OUTPUT FILE is: $OUTPUT_FILE"
         cat $OUTPUT_FILE
 
-#    - id: copy
-#      name: copy files fia ssh
-#      shell: bash
-#      env:
-#        TARGET_PATH: /data/compose/${{ github.event.repository.name }}
-#      run: |
-#        echo ""
-#        echo "========== COPY REPOSITORY TO REMOTE =========="
-#        echo ""
-#
-#        ssh -o StrictHostKeyChecking=no sshserver "rm -rf ${{ env.TARGET_PATH }}"
-#        ssh -o StrictHostKeyChecking=no sshserver "mkdir -p ${{ env.TARGET_PATH }}"
-#        scp -o StrictHostKeyChecking=no -r ./ sshserver:${{ env.TARGET_PATH }}/
+    - id: copy
+      name: copy files fia ssh
+      shell: bash
+      env:
+        TARGET_PATH: /data/compose/${{ github.event.repository.name }}
+      run: |
+        echo ""
+        echo "========== COPY REPOSITORY TO REMOTE =========="
+        echo ""
+
+        ssh -o StrictHostKeyChecking=no sshserver "rm -rf ${{ env.TARGET_PATH }}"
+        ssh -o StrictHostKeyChecking=no sshserver "mkdir -p ${{ env.TARGET_PATH }}"
+        scp -o StrictHostKeyChecking=no -r ./ sshserver:${{ env.TARGET_PATH }}/
 
     - id: network
       name: init docker network
@@ -185,6 +184,15 @@ runs:
           done
         EOF
 
+#    - id: execute
+#      name: execute setup
+#      shell: bash
+#      run: |
+#        echo ""
+#        echo "========== EXECUTE SETUP =========="
+#        echo ""
+#        ssh -o StrictHostKeyChecking=no sshserver "docker compose -f docker-compose.yml -f docker-compose.override.yml up -d"
+
 # BACKUP DATA
 #
 #    - id: copy
@@ -196,5 +204,5 @@ runs:
 
 # -> + create network (with traefik inside)
 # -> + copy sources by ssh
-# -> generate docker-compose.override.yml
+# -> + generate docker-compose.override.yml
 # -> execute docker compose up -d
