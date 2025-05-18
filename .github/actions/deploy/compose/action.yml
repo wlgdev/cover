@@ -50,17 +50,17 @@ runs:
         EOF
         ssh-keyscan -H ${{ inputs.ssh_private_host }} >> ~/.ssh/known_hosts
 
-    - id: copy
-      name: copy files fia ssh
-      shell: bash
-      run: |
-        echo ""
-        echo "========== COPY REPOSITORY TO REMOTE =========="
-        echo ""
-        
-        ssh -o StrictHostKeyChecking=no sshserver "rm -rf /data/compose/cover"
-        ssh -o StrictHostKeyChecking=no sshserver "mkdir -p /data/compose/cover"
-        scp -o StrictHostKeyChecking=no -r ./ sshserver:/data/compose/cover/
+#    - id: copy
+#      name: copy files fia ssh
+#      shell: bash
+#      run: |
+#        echo ""
+#        echo "========== COPY REPOSITORY TO REMOTE =========="
+#        echo ""
+#
+#        ssh -o StrictHostKeyChecking=no sshserver "rm -rf /data/compose/cover"
+#        ssh -o StrictHostKeyChecking=no sshserver "mkdir -p /data/compose/cover"
+#        scp -o StrictHostKeyChecking=no -r ./ sshserver:/data/compose/cover/
 
     - id: network
       name: create docker network
@@ -78,19 +78,24 @@ runs:
           NETWORK_NAME=$NETWORK_NAME-dev
           echo "NETWORK NAME DEV = $NETWORK_NAME"
         fi
-        if [ "${{ env.BRANCH_NAME }}" == "master" ]; then
-          NETWORK_NAME=$NETWORK_NAME-master
-          echo "NETWORK NAME DEV = $NETWORK_NAME"
-        fi
-        
         echo "name=$NETWORK_NAME" >> $GITHUB_OUTPUT
         echo "NETWORK NAME = $NETWORK_NAME"
         
         ssh -o StrictHostKeyChecking=no sshserver << EOF
-          echo ""
+        
+          # Check if the Docker network exists; if not, create it
+          if ! docker network inspect "$NETWORK_NAME" >/dev/null 2>&1; then
+            docker network create "$NETWORK_NAME"
+            echo "CREATED: Docker network - $NETWORK_NAME"
+          else
+            echo "EXIST: Docker network present - $NETWORK_NAME"
+          fi
+        
         EOF
         
 
+# BACKUP DATA
+#
 #    - id: copy
 #      name: copy files fia ssh
 #      shell: bash
