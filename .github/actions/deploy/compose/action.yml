@@ -120,6 +120,8 @@ runs:
             {
               if [ "$service" == "${{ steps.setup.outputs.host }}" ]; then
                 echo "  $service:"
+                echo "    networks:"
+                echo "      - ${{ steps.setup.outputs.network }}"
                 echo "    labels:"
                 echo "      - \"traefik.enable=true\""
                 echo "      - \"traefik.http.routers.$service.rule=Host(\`${{ steps.setup.outputs.domain }}\`)\""
