@@ -50,17 +50,19 @@ runs:
         EOF
         ssh-keyscan -H ${{ inputs.ssh_private_host }} >> ~/.ssh/known_hosts
 
-#    - id: copy
-#      name: copy files fia ssh
-#      shell: bash
-#      run: |
-#        echo ""
-#        echo "========== COPY REPOSITORY TO REMOTE =========="
-#        echo ""
-#
-#        ssh -o StrictHostKeyChecking=no sshserver "rm -rf /data/compose/cover"
-#        ssh -o StrictHostKeyChecking=no sshserver "mkdir -p /data/compose/cover"
-#        scp -o StrictHostKeyChecking=no -r ./ sshserver:/data/compose/cover/
+    - id: copy
+      name: copy files fia ssh
+      shell: bash
+      env:
+        TARGET_PATH: /data/compose/${{ github.event.repository.name }}
+      run: |
+        echo ""
+        echo "========== COPY REPOSITORY TO REMOTE =========="
+        echo ""
+
+        ssh -o StrictHostKeyChecking=no sshserver "rm -rf ${{ env.TARGET_PATH }}"
+        ssh -o StrictHostKeyChecking=no sshserver "mkdir -p ${{ env.TARGET_PATH }}"
+        scp -o StrictHostKeyChecking=no -r ./ sshserver:${{ env.TARGET_PATH }}/
 
     - id: network
       name: init docker network
@@ -88,7 +90,6 @@ runs:
         echo "DOMAIN NAME = $DOMAIN_NAME"
         
         ssh -o StrictHostKeyChecking=no sshserver << EOF
-        
           # Check if the Docker network exists; if not, create it
           if ! docker network inspect "$NETWORK_NAME" >/dev/null 2>&1; then
             docker network create "$NETWORK_NAME"
@@ -103,13 +104,12 @@ runs:
             if echo "\$IMAGE" | grep -qi 'traefik'; then
               if ! docker inspect -f '{{json .NetworkSettings.Networks}}' "\$container" | grep -q "$NETWORK_NAME"; then
                 docker network connect "$NETWORK_NAME" "\$container"
-                echo "Connected container \$(docker inspect -f '{{.Name}}' \$container) to network $NETWORK_NAME"
+                echo "CONNECTED: container to -> $NETWORK_NAME : \$(docker inspect -f '{{.Name}}' \$container)"
               else
-                echo "Container \$(docker inspect -f '{{.Name}}' \$container) already connected to network $NETWORK_NAME"
+                echo "EXISTED: already in -> $NETWORK_NAME : \$(docker inspect -f '{{.Name}}' \$container)"
               fi
             fi
           done
-        
         EOF
         
 
