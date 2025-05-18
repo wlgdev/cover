@@ -92,12 +92,15 @@ runs:
           fi
         
           # Connect all containers with 'traefik' in their name
-          for container in \$(docker ps --format '{{.Names}}' | grep traefik); do
-            if ! docker inspect -f '{{json .NetworkSettings.Networks}}' "\$container" | grep -q "$NETWORK_NAME"; then
-              docker network connect "$NETWORK_NAME" "\$container"
-              echo "Connected \$container to network $NETWORK_NAME"
-            else
-              echo "\$container already connected to network $NETWORK_NAME"
+          for container in \$(docker ps --format '{{.ID}}'); do
+            IMAGE=\$(docker inspect -f '{{.Config.Image}}' "\$container")
+            if echo "\$IMAGE" | grep -qi 'traefik'; then
+              if ! docker inspect -f '{{json .NetworkSettings.Networks}}' "\$container" | grep -q "$NETWORK_NAME"; then
+                docker network connect "$NETWORK_NAME" "\$container"
+                echo "Connected container \$(docker inspect -f '{{.Name}}' \$container) to network $NETWORK_NAME"
+              else
+                echo "Container \$(docker inspect -f '{{.Name}}' \$container) already connected to network $NETWORK_NAME"
+              fi
             fi
           done
         
