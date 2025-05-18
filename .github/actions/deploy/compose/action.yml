@@ -54,6 +54,22 @@ runs:
         ssh -o StrictHostKeyChecking=no sshserver "mkdir -p /data/compose/cover"
         scp -o StrictHostKeyChecking=no -r ./ sshserver:/data/compose/cover/
 
+    - id: network
+      name: create docker network
+      shell: bash
+      env:
+        REPOSITORY_NAME: ${{ github.event.repository.name }}
+      run: |
+        NETWORK_NAME=proxy-${{ env.REPOSITORY_NAME }}
+        echo "name=$NETWORK_NAME" >> $GITHUB_OUTPUT
+        
+        echo "NETWORK NAME = ${{ env.NETWORK_NAME }} or $NETWORK_NAME or ${{ github.repository }}"
+        
+        ssh -o StrictHostKeyChecking=no sshserver << EOF
+          echo ""
+        EOF
+        
+
 #    - id: copy
 #      name: copy files fia ssh
 #      shell: bash
