@@ -121,6 +121,7 @@ runs:
               if [ "$service" == "${{ steps.setup.outputs.host }}" ]; then
                 echo "  $service:"
                 echo "    networks:"
+                echo "      - default"
                 echo "      - ${{ steps.setup.outputs.network }}"
                 echo "    labels:"
                 echo "      - \"traefik.enable=true\""
@@ -130,6 +131,10 @@ runs:
                 echo "      - \"traefik.http.services.$service.loadbalancer.server.port=${{ steps.setup.outputs.port }}\""
                 echo "      - \"traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https\""
                 echo "      - \"traefik.http.routers.$service.middlewares=redirect-to-https\""
+              else
+                echo "  $service:"
+                echo "    networks:"
+                echo "      - default"
               fi
             } >> "$OUTPUT_FILE"
           fi
