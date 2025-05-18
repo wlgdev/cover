@@ -34,6 +34,10 @@ runs:
       env:
         SSH_RSA_ID: ~/.ssh/id_rsa
       run: |
+        echo ""
+        echo "========== SSH CONNECTION KEYS =========="
+        echo ""
+        
         mkdir -p ~/.ssh
         echo "${{ inputs.ssh_private_key }}" > ${{ env.SSH_RSA_ID }}
         chmod 600 ${{ env.SSH_RSA_ID }}
@@ -50,6 +54,10 @@ runs:
       name: copy files fia ssh
       shell: bash
       run: |
+        echo ""
+        echo "========== COPY REPOSITORY TO REMOTE =========="
+        echo ""
+        
         ssh -o StrictHostKeyChecking=no sshserver "rm -rf /data/compose/cover"
         ssh -o StrictHostKeyChecking=no sshserver "mkdir -p /data/compose/cover"
         scp -o StrictHostKeyChecking=no -r ./ sshserver:/data/compose/cover/
@@ -60,9 +68,12 @@ runs:
       env:
         REPOSITORY_NAME: ${{ github.event.repository.name }}
       run: |
+        echo ""
+        echo "========== CREATE DOCKER NETWORK =========="
+        echo ""
+        
         NETWORK_NAME=proxy-${{ env.REPOSITORY_NAME }}
         echo "name=$NETWORK_NAME" >> $GITHUB_OUTPUT
-        
         echo "NETWORK NAME = ${{ env.NETWORK_NAME }} or $NETWORK_NAME or ${{ github.repository }}"
         
         ssh -o StrictHostKeyChecking=no sshserver << EOF
