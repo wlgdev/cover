@@ -50,7 +50,8 @@ runs:
       name: copy files fia ssh
       shell: bash
       run: |
-        scp -r ./ sshserver:/data/compose/cover/
+        ssh -o StrictHostKeyChecking=no sshserver "mkdir -p /data/compose/cover/"
+        scp -o StrictHostKeyChecking=no -r ./ sshserver:/data/compose/cover/
 
 # -> create network
 # -> copy sources by ssh
