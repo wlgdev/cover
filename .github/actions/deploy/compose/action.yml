@@ -91,6 +91,16 @@ runs:
             echo "EXIST: Docker network present - $NETWORK_NAME"
           fi
         
+          # Connect all containers with 'traefik' in their name
+          for container in \$(docker ps --format '{{.Names}}' | grep traefik); do
+            if ! docker inspect -f '{{json .NetworkSettings.Networks}}' "\$container" | grep -q "$NETWORK_NAME"; then
+              docker network connect "$NETWORK_NAME" "\$container"
+              echo "Connected \$container to network $NETWORK_NAME"
+            else
+              echo "\$container already connected to network $NETWORK_NAME"
+            fi
+          done
+        
         EOF
         
 
