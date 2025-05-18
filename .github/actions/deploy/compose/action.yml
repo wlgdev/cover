@@ -50,7 +50,8 @@ runs:
       name: copy files fia ssh
       shell: bash
       run: |
-        ssh -o StrictHostKeyChecking=no sshserver "mkdir -p /data/compose/cover/"
+        ssh -o StrictHostKeyChecking=no sshserver "rm -rf /data/compose/cover"
+        ssh -o StrictHostKeyChecking=no sshserver "mkdir -p /data/compose/cover"
         scp -o StrictHostKeyChecking=no -r ./ sshserver:/data/compose/cover/
 
 #    - id: copy
