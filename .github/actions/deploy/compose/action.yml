@@ -50,6 +50,42 @@ runs:
         EOF
         ssh-keyscan -H ${{ inputs.ssh_private_host }} >> ~/.ssh/known_hosts
 
+    - id: setup
+      name: generate names based on input values
+      shell: bash
+      env:
+        REPOSITORY_NAME: ${{ github.event.repository.name }}
+        INPUT_DOMAIN_NAME: ${{ inputs.domain_name }}
+        INPUT_TARGET_HOST: ${{ inputs.target_service }}
+        INPUT_TARGET_PORT: ${{ inputs.target_port }}
+        BRANCH_NAME: ${{ github.ref_name }}
+      run: |
+        echo ""
+        echo "========== SETUP NETWORK/DOMAIN NAMES =========="
+        echo ""
+        
+        NETWORK_NAME=proxy-${{ env.REPOSITORY_NAME }}-network
+        DOMAIN_NAME=${{ env.INPUT_DOMAIN_NAME }}
+        TARGET_HOST=${{ env.INPUT_TARGET_HOST }}
+        TARGET_PORT=${{ env.INPUT_TARGET_PORT }}
+        
+        if [ "${{ env.BRANCH_NAME }}" != "master" ]; then
+          NETWORK_NAME=$NETWORK_NAME-dev
+          DOMAIN_NAME=$DOMAIN_NAME.dev
+          echo "NETWORK NAME DEV = $NETWORK_NAME"
+        fi
+        DOMAIN_NAME=$DOMAIN_NAME.wlg.tv
+        
+        echo "network=$NETWORK_NAME" >> $GITHUB_OUTPUT
+        echo "domain=$DOMAIN_NAME" >> $GITHUB_OUTPUT
+        echo "host=$TARGET_HOST" >> $GITHUB_OUTPUT
+        echo "port=$TARGET_PORT" >> $GITHUB_OUTPUT
+        
+        echo "NETWORK NAME = $NETWORK_NAME"
+        echo "DOMAIN NAME  = $DOMAIN_NAME"
+        echo "TARGET HOST  = $TARGET_HOST"
+        echo "TARGET PORT  = $TARGET_PORT"
+
     - id: compose
       name: create docker compose for remote deployment
       shell: bash
@@ -60,11 +96,12 @@ runs:
 
         INPUT_FILE="docker-compose.yml"
         OUTPUT_FILE="docker-compose.override.yml"
-
-        echo "services:" > "$OUTPUT_FILE"
         
         in_services_block=false
-        
+        echo "networks:"
+        echo "  ${{ steps.setup.outputs.network }}:"
+        echo "    external: true"
+        echo "services:" > "$OUTPUT_FILE"
         while IFS= read -r line; do
           # Detect start of services block
           if [[ "$line" =~ ^services: ]]; then
@@ -81,9 +118,18 @@ runs:
           if $in_services_block && [[ "$line" =~ ^[[:space:]]{2}([a-zA-Z0-9_-]+): ]]; then
             service="${BASH_REMATCH[1]}"
             {
-              echo "  $service:"
-              echo "    labels:"
-              echo "      - \"$service.static.property=true\""
+              if [ "$service" == "${{ steps.setup.outputs.host }}" ]; then
+                echo "  $service:"
+                echo "    labels:"
+                echo "      - \"$service.static.property=true\""
+                echo "      - \"traefik.enable=true\""
+                echo "      - \"traefik.http.routers.$service.rule=Host(`${{ steps.setup.outputs.domain }}`)\""
+                echo "      - \"traefik.http.routers.$service.entrypoints=websecure\""
+                echo "      - \"traefik.http.routers.$service.tls.certresolver=letsencrypt\""
+                echo "      - \"traefik.http.services.$service.loadbalancer.server.port=${{ steps.setup.outputs.port }}\""
+                echo "      - \"traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https\""
+                echo "      - \"traefik.http.routers.$service.middlewares=redirect-to-https\""
+              fi
             } >> "$OUTPUT_FILE"
           fi
         done < "$INPUT_FILE"
@@ -108,27 +154,13 @@ runs:
     - id: network
       name: init docker network
       shell: bash
-      env:
-        REPOSITORY_NAME: ${{ github.event.repository.name }}
-        BRANCH_NAME: ${{ github.ref_name }}
-        INPUT_DOMAIN_NAME: ${{ inputs.domain_name }}
       run: |
         echo ""
         echo "========== CREATE DOCKER NETWORK =========="
         echo ""
         
-        NETWORK_NAME=proxy-${{ env.REPOSITORY_NAME }}-network
-        DOMAIN_NAME=${{ env.INPUT_DOMAIN_NAME }}
-        if [ "${{ env.BRANCH_NAME }}" != "master" ]; then
-          NETWORK_NAME=$NETWORK_NAME-dev
-          DOMAIN_NAME=$DOMAIN_NAME.dev
-          echo "NETWORK NAME DEV = $NETWORK_NAME"
-        fi
-        DOMAIN_NAME=$DOMAIN_NAME.wlg.tv
-        echo "name=$NETWORK_NAME" >> $GITHUB_OUTPUT
-        echo "domain=$DOMAIN_NAME" >> $GITHUB_OUTPUT
-        echo "NETWORK NAME = $NETWORK_NAME"
-        echo "DOMAIN NAME = $DOMAIN_NAME"
+        NETWORK_NAME=${{ steps.setup.outputs.network }}
+        DOMAIN_NAME=${{ steps.setup.outputs.domain }}
         
         ssh -o StrictHostKeyChecking=no sshserver << EOF
           # Check if the Docker network exists; if not, create it

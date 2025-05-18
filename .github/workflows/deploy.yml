@@ -15,3 +15,5 @@ jobs:
           ssh_private_port: ${{ secrets.SSH_PRIVATE_PORT }}
           ssh_private_user: ${{ secrets.SSH_PRIVATE_USER }}
           domain_name: covering
+          target_service: nginx
+          target_port: 80
