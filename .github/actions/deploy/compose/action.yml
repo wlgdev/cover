@@ -2,6 +2,19 @@ name: deploy [DOCKER-COMPOSE]
 description: copy by ssh sources to remote and runs compose docker command
 
 inputs:
+  ssh_private_key:
+    required: true
+    description: ''
+  ssh_private_host:
+    required: true
+    description: ''
+  ssh_private_port:
+    required: true
+    description: ''
+  ssh_private_user:
+    required: true
+    description: ''
+
   domain_name:
     required: true
     description: 'domain name for project ${DOMAIN_NAME}.wlg.tv'
@@ -19,23 +32,19 @@ runs:
       name: create ssh configuration
       shell: bash
       env:
-        SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         SSH_RSA_ID: ~/.ssh/id_rsa
-        SSH_HOST: ${{ secrets.SSH_PRIVATE_HOST }}
-        SSH_PORT: ${{ secrets.SSH_PRIVATE_PORT }}
-        SSH_USER: ${{ secrets.SSH_PRIVATE_USER }}
       run: |
         mkdir -p ~/.ssh
-        echo "${{ env.SSH_KEY }}" > ${{ env.SSH_RSA_ID }}
+        echo "${{ inputs.ssh_private_key }}" > ${{ env.SSH_RSA_ID }}
         chmod 600 ${{ env.SSH_RSA_ID }}
         cat <<EOF >> ~/.ssh/config
         Host sshserver
-            HostName ${{ env.SSH_HOST }}
-            User ${{ env.SSH_USER }}
-            Port ${{ env.SSH_PORT }}
+            HostName ${{ inputs.ssh_private_host }}
+            User ${{ inputs.ssh_private_user }}
+            Port ${{ inputs.ssh_private_port }}
             IdentityFile ${{ env.SSH_RSA_ID }}
         EOF
-        ssh-keyscan -H ${{ env.SSH_HOST }} >> ~/.ssh/known_hosts
+        ssh-keyscan -H ${{ inputs.ssh_private_host }} >> ~/.ssh/known_hosts
 
     - id: copy
       name: copy files fia ssh
