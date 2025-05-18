@@ -1,0 +1,49 @@
+name: deploy [DOCKER-COMPOSE]
+description: copy by ssh sources to remote and runs compose docker command
+
+inputs:
+  domain_name:
+    required: true
+    description: 'domain name for project ${DOMAIN_NAME}.wlg.tv'
+  target_service:
+    required: false
+    description: 'service name of docker-compose.yml for proxy'
+  target_port:
+    required: false
+    description: 'service port of docker-compose.yml for proxy'
+
+runs:
+  using: composite
+  steps:
+    - id: ssh
+      name: create ssh configuration
+      shell: bash
+      env:
+        SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        SSH_RSA_ID: ~/.ssh/id_rsa
+        SSH_HOST: ${{ secrets.SSH_PRIVATE_HOST }}
+        SSH_PORT: ${{ secrets.SSH_PRIVATE_PORT }}
+        SSH_USER: ${{ secrets.SSH_PRIVATE_USER }}
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ env.SSH_KEY }}" > ${{ env.SSH_RSA_ID }}
+        chmod 600 ${{ env.SSH_RSA_ID }}
+        cat <<EOF >> ~/.ssh/config
+        Host sshserver
+            HostName ${{ env.SSH_HOST }}
+            User ${{ env.SSH_USER }}
+            Port ${{ env.SSH_PORT }}
+            IdentityFile ${{ env.SSH_RSA_ID }}
+        EOF
+        ssh-keyscan -H ${{ env.SSH_HOST }} >> ~/.ssh/known_hosts
+
+    - id: copy
+      name: copy files fia ssh
+      shell: bash
+      run: |
+        scp -r ./ sshserver:/data/compose/cover/
+
+# -> create network
+# -> copy sources by ssh
+# -> generate docker-compose.override.yml
+# -> execute docker compose up -d
