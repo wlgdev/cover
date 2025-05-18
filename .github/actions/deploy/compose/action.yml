@@ -80,16 +80,16 @@ runs:
           # Match lines indented exactly 2 spaces (first-level keys under services)
           if $in_services_block && [[ "$line" =~ ^[[:space:]]{2}([a-zA-Z0-9_-]+): ]]; then
             service="${BASH_REMATCH[1]}"
-            cat >> "$OUTPUT_FILE" <<EOF
-              $service:
-                labels:
-                - "$service.static.property=true"
-            EOF
+            {
+              echo "  $service:"
+              echo "    labels:"
+              echo "      - \"$service.static.property=true\""
+            } >> "$OUTPUT_FILE"
           fi
         done < "$INPUT_FILE"
         
-        echo "Generated OUTPUT FILE is:"
-        echo $OUTPUT_FILE
+        echo "Generated OUTPUT FILE is: $OUTPUT_FILE"
+        cat $OUTPUT_FILE
 
 #    - id: copy
 #      name: copy files fia ssh
