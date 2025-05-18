@@ -1,0 +1,198 @@
+:root {
+  --bg-light: #20202c;
+  --bg-dark: #14151e;
+  --bg-dark-extra: #101018;
+  --bg-medium: #1a1a24;
+  --bg-light-extra: #282a39;
+  --text: #fff;
+  --text-2: rgba(255, 255, 255, 0.5);
+  --border-light: #292b3b;
+  --violet: #9047fe;
+  --violet-dark: #4933c2;
+  --violet-light: #ae81ff;
+  --red-dark: #ad1010;
+  --red: #f85212;
+  --green: #6dd919;
+  --green-dark: #105a18;
+  --blue: #559eff;
+  --blue-light: #2392cc;
+  --blue-light-extra: #42bdf9;
+  --yellow: #fc0;
+  --yellow-dark: #e6db74;
+  --grey-dark: #75715e;
+  --pink: #f92672;
+  --green-light: #a9f513ee;
+  --orange: #fd971f;
+  --grey: #cfcfc2;
+  --none: #0000;
+
+  --font-size-base: 16px;
+  --f1: "Geist";
+  --f2: "Geist";
+
+  --accent: var(--violet);
+
+  font-family: var(--f1), var(--f2), sans-serif;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--bg-light-extra) var(--bg-light);
+}
+
+*::-webkit-scrollbar {
+  height: 12px;
+  width: 12px;
+}
+*::-webkit-scrollbar-track {
+  background: var(--bg-light);
+}
+*::-webkit-scrollbar-thumb {
+  background-color: var(--bg-light-extra);
+  border-radius: 5px;
+  border: 3px solid var(--bg-light);
+}
+
+textarea,
+input[type="text"],
+input[type="url"],
+input[type="number"] {
+  border: none;
+  color: var(--text);
+  font-family: var(--f2);
+  font-size: 1rem;
+  padding: 10px;
+  background-color: transparent;
+  border-bottom: 2px solid var(--bg-light);
+  padding-bottom: 5px;
+  padding-top: 5px;
+}
+
+input[type="number"] {
+  width: 50px;
+  padding-left: 0px;
+  padding-right: 0px;
+  text-align: center;
+}
+
+textarea,
+input[type="text"],
+input[type="url"] {
+  width: 100%;
+  text-align: left;
+}
+
+textarea {
+  background-color: var(--bg-light);
+}
+
+textarea:focus {
+  outline: 2px solid var(--violet);
+}
+
+input[type="text"]:focus,
+input[type="url"]:focus,
+input[type="number"]:focus {
+  outline: none;
+  border-color: var(--violet);
+  background: "transparent" !important;
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:focus {
+  transition: background-color 0s 600000s, color 0s 600000s !important;
+}
+
+textarea:hover:not(:focus) {
+  outline: 2px solid var(--bg-light-extra);
+}
+
+input[type="text"]:hover:not(:focus),
+input[type="url"]:hover:not(:focus),
+input[type="number"]:hover:not(:focus) {
+  outline: none;
+  border-color: var(--bg-light-extra);
+}
+
+/* hide arrows in number input */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="text"].invalid {
+  border-color: var(--red);
+}
+
+input[type="text"].valid {
+  border-color: var(--green-light);
+}
+
+input[type="checkbox"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border: none;
+  border-radius: 4px;
+  background-color: var(--bg-light);
+  cursor: pointer;
+  position: relative;
+  margin: 0px;
+  padding: 0px;
+}
+
+input[type="checkbox"]:checked {
+  background-color: var(--violet);
+}
+
+input[type="checkbox"]:checked::after {
+  content: "\2714";
+  font-size: 12px;
+  color: var(--text);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+canvas {
+  background-color: var(--bg-dark);
+}
+
+/** Toggle */
+
+[data-toggle-root] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1rem;
+  width: fit-content;
+  padding: 0.2rem 0.3rem 0.2rem 0.3rem;
+  border-radius: 0.3rem;
+  color: var(--text);
+  cursor: pointer;
+  font-family: var(--f1);
+  font-size: 1rem;
+}
+
+[data-toggle-root]:hover {
+  background-color: var(--bg-light-extra);
+}
+
+[data-toggle-root][data-state="on"] {
+  background-color: var(--bg-dark-extra);
+  border: 1px solid var(--bg-dark-extra);
+}
+
+[data-toggle-root][data-state="off"] {
+  background-color: var(--bg-light);
+  border: 1px solid var(--bg-light);
+}
