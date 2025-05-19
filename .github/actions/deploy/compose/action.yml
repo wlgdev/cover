@@ -199,7 +199,12 @@ runs:
           echo "Deleting folder: $folder"
           rm -rf "$folder"
         done
-
+        
+        #        while IFS= read -r folder; do
+        #          echo "Deleting $folder: $folder"
+        #          rm -rf "$folder"
+        #        done <<< "${{ inputs.delete_before_deploy }}"
+        
         ssh -o StrictHostKeyChecking=no sshserver << EOF
           cd ${{ env.TARGET_PATH }}
           echo "STOP docker containers before copy"
@@ -256,7 +261,7 @@ runs:
 
         ssh -o StrictHostKeyChecking=no sshserver << EOF
           cd ${{ env.TARGET_PATH }}
-          echo "START docker containers: docker compose -f docker-compose.yml -f docker-compose.override.yml up -d"
+          echo "START docker containers: docker compose -f docker-compose.remote.yml -f docker-compose.override.yml up -d"
           docker compose -f docker-compose.remote.yml -f docker-compose.override.yml up -d
           echo "CLEAN: delete unused images"
           docker image prune -a -f
