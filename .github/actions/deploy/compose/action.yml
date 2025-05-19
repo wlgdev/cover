@@ -131,6 +131,7 @@ runs:
                 echo "      - \"traefik.http.services.$service.loadbalancer.server.port=${{ steps.setup.outputs.port }}\""
                 echo "      - \"traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https\""
                 echo "      - \"traefik.http.routers.$service.middlewares=redirect-to-https\""
+                echo "      - \"traefik.docker.network=${{ steps.setup.outputs.network }}\""
               else
                 echo "  $service:"
                 echo "    networks:"

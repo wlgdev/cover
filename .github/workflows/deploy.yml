@@ -7,6 +7,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: clean before deploy
+        run: |
+          rm -rf ./src
       - name: deploy
         uses: ./.github/actions/deploy/compose
         with:
@@ -14,6 +17,6 @@ jobs:
           ssh_private_host: ${{ secrets.SSH_PRIVATE_HOST }}
           ssh_private_port: ${{ secrets.SSH_PRIVATE_PORT }}
           ssh_private_user: ${{ secrets.SSH_PRIVATE_USER }}
-          domain_name: covering
+          domain_name: cover
           target_service: nginx
           target_port: 80
