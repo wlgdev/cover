@@ -196,8 +196,12 @@ runs:
         echo ""
 
         echo "${{ inputs.delete_before_deploy }}" | tr -s '[:space:]' '\n' | while read -r folder; do
-          echo "Deleting folder $folder"
-          rm -rf "$folder"
+          if [ -d "$folder" ] || [ -f "$folder" ]; then
+            echo "Deleting folder $folder"
+            rm -rf "$folder"
+          else
+            echo "Skipping $folder (not found)"
+          fi
         done
 
         #  for folder in ${{ inputs.delete_before_deploy }}; do
