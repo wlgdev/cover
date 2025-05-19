@@ -2,22 +2,23 @@ name: deploy [DOCKER-COMPOSE]
 description: copy by ssh sources to remote and runs compose docker command
 
 inputs:
-  delete_before_deploy:
-    required: false
-    description: "delete folders before running 'docker compose up'"
 
   ssh_private_key:
     required: true
-    description: ''
+    description: 'ssh: private key'
   ssh_private_host:
     required: true
-    description: ''
+    description: 'ssh: host name'
   ssh_private_port:
     required: true
-    description: ''
+    description: 'ssh: host port'
   ssh_private_user:
     required: true
-    description: ''
+    description: 'ssh: host user'
+
+  delete_before_deploy:
+    required: false
+    description: "delete folders before running 'docker compose up'"
 
   domain_name:
     required: true
@@ -243,23 +244,23 @@ runs:
           done
         EOF
 
-#    - id: execute
-#      name: execute setup
-#      shell: bash
-#      env:
-#        TARGET_PATH: /data/compose/${{ github.event.repository.name }}
-#      run: |
-#        echo ""
-#        echo "========== EXECUTE SETUP =========="
-#        echo ""
-#
-#        ssh -o StrictHostKeyChecking=no sshserver << EOF
-#          cd ${{ env.TARGET_PATH }}
-#          echo "START docker containers: docker compose -f docker-compose.yml -f docker-compose.override.yml up -d"
-#          docker compose -f docker-compose.yml -f docker-compose.override.yml up -d
-#          echo "CLEAN: delete unused images"
-#          docker image prune -a -f
-#        EOF
+    - id: execute
+      name: execute setup
+      shell: bash
+      env:
+        TARGET_PATH: /data/compose/${{ github.event.repository.name }}
+      run: |
+        echo ""
+        echo "========== EXECUTE SETUP =========="
+        echo ""
+
+        ssh -o StrictHostKeyChecking=no sshserver << EOF
+          cd ${{ env.TARGET_PATH }}
+          echo "START docker containers: docker compose -f docker-compose.yml -f docker-compose.override.yml up -d"
+          docker compose -f docker-compose.remote.yml -f docker-compose.override.yml up -d
+          echo "CLEAN: delete unused images"
+          docker image prune -a -f
+        EOF
 
 # BACKUP DATA
 #
