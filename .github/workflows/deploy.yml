@@ -7,9 +7,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: clean before deploy
-        run: |
-          rm -rf ./src
+#      - name: clean before deploy
+#        run: |
+#          rm -rf ./src
       - name: deploy
         uses: ./.github/actions/deploy/compose
         with:
