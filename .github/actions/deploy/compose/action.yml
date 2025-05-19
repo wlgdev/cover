@@ -194,8 +194,11 @@ runs:
         echo ""
         echo "========== COPY REPOSITORY TO REMOTE =========="
         echo ""
-
+        
         echo "${{ inputs.delete_before_deploy }}" | tr -s '[:space:]' '\n' | while read -r folder; do
+          # Skip empty lines
+          [[ -z "$folder" ]] && continue
+        
           if [ -d "$folder" ] || [ -f "$folder" ]; then
             echo "Deleting folder $folder"
             rm -rf "$folder"
