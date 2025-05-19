@@ -14,7 +14,7 @@ jobs:
           ssh_private_host: ${{ secrets.SSH_PRIVATE_HOST }}
           ssh_private_port: ${{ secrets.SSH_PRIVATE_PORT }}
           ssh_private_user: ${{ secrets.SSH_PRIVATE_USER }}
-          delete_before_deploy: |
+          delete_before_deploy:
             ./src
             ./test
           domain_name: cover
