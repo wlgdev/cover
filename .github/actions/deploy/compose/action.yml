@@ -354,7 +354,10 @@ runs:
           echo "ENV_PROPERTIES = \$ENV_PROPERTIES"
         
           while read -r property; do
+            [[ -z "\$property" ]] && continue
             echo "properties-in: \$property"
+            IFS='=' read -r key value <<< "\$property"
+            echo "test: \$key=\$value"
           done <<< "\$ENV_PROPERTIES"
           (
             while read -r property; do
