@@ -338,13 +338,16 @@ runs:
         echo "========== EXECUTE SETUP =========="
         echo ""
 
+        while read -r target; do
+          echo "targets1: $target"
+        done <<< "${{ inputs.env }}"
+
         ssh -o StrictHostKeyChecking=no sshserver << EOF
           cd ${{ env.TARGET_PATH }}
           echo "START docker containers: docker compose -f docker-compose.deploy.yml -f docker-compose.override.yml up -d"
         
-          echo "TARGETES: $TARGETS"
           while read -r target; do
-            echo "targets: $target"
+            echo "targets2: $target"
           done <<< "${{ inputs.env }}"
           (
             echo "DEBUG2: $ENV_PROPERTIES"
