@@ -8,6 +8,13 @@ services:
     restart: unless-stopped
     environment:
       - TZ=Europe/Moscow
+  dummy-service:
+    image: nginx:latest
+    ports:
+      - "81:80"
+    restart: unless-stopped
+    environment:
+      - TZ=Europe/Moscow
 
 networks:
   nginx:
