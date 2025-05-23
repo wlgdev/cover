@@ -1,10 +1,10 @@
 # FILE: ./.github/actions/deploy/compose/action.yml
 # DESCRIPTION: allows deploying applications with a docker-compose.yml file
-#              generates: docker-compose.remote.yml with commented ports for all services
+#              generates: docker-compose.deploy.yml with commented ports for all services
 #                         as it runs under reverse-proxy we do not need to expose ports (to access by domain only)
 #              generates: docker-compose.override.yml for to self-create SSL certificate using traefik
 #                         with assigned to docker network for specified service name together with traefik
-#              service name will be accessible by https://${DOMAIN_NAME}.wlg.tv for ${TARGET_SERVICE}:${TARGET_PORT}
+#              service name will be accessible by https://${SUBDOMAIN_NAME}.${DOMAIN_NAME} for ${TARGET_SERVICE}:${TARGET_PORT}
 
 name: deploy [DOCKER-COMPOSE]
 description: copy by ssh sources to remote and runs compose docker command
@@ -29,11 +29,14 @@ inputs:
 
   target:
     required: false
-    description: 'provide target as: ${SUBDOMAIN_NAME}:${SERVICE_NAME}:${PORT}'
+    description: 'format: ${SUBDOMAIN_NAME}:${SERVICE_NAME}:${PORT} - list of services to be targeted'
   domain:
     required: false
     description: 'default: wlg.tv'
     default: "wlg.tv"
+  env:
+    required: false
+    description: 'list of env variables'
 
 # ----------------------------------------------------------------------
 
@@ -144,16 +147,16 @@ runs:
         echo "network=$NETWORK_NAME" >> $GITHUB_OUTPUT
         echo "NETWORK NAME = $NETWORK_NAME"
 
-    - id: compose-remote
-      name: create docker remote compose
+    - id: compose-deploy
+      name: create docker deploy compose
       shell: bash
       run: |
         echo ""
-        echo "========== GENERATE DOCKER COMPOSE (REMOTE) =========="
+        echo "========== GENERATE DOCKER COMPOSE (DEPLOY) =========="
         echo ""
         
         INPUT_FILE="docker-compose.yml"
-        OUTPUT_FILE="docker-compose.remote.yml"
+        OUTPUT_FILE="docker-compose.deploy.yml"
 
         in_services_block=false
         in_ports_block=false
@@ -336,8 +339,18 @@ runs:
 
         ssh -o StrictHostKeyChecking=no sshserver << EOF
           cd ${{ env.TARGET_PATH }}
-          echo "START docker containers: docker compose -f docker-compose.remote.yml -f docker-compose.override.yml up -d"
-          docker compose -f docker-compose.remote.yml -f docker-compose.override.yml up -d
+          echo "START docker containers: docker compose -f docker-compose.deploy.yml -f docker-compose.override.yml up -d"
+          (
+            PROPERTIES=$(echo "${{ inputs.env }}" | tr -s '[:space:]' '\n')
+            while read -r property; do
+              [[ -z "$property" ]] && continue
+              IFS='=' read -r key value <<< "$property"
+              echo "$key=$value"
+              export "$key=$value"
+            done <<< "$PROPERTIES"
+            docker compose -f docker-compose.deploy.yml -f docker-compose.override.yml up -d
+          )
           echo "CLEAN: delete unused images"
           docker image prune -a -f
+          docker builder prune -a -f
         EOF
