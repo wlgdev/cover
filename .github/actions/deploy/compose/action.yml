@@ -358,10 +358,13 @@ runs:
           (
             while IFS= read -r line; do
               [[ -z "\$line" ]] && continue
-              eval "tokens=(\$line)"
+              read -ra tokens <<< "\$line"
         
               for token in "\${tokens[@]}"; do
                 IFS='=' read -r key value <<< "\$token"
+                value="\${value%\"}"
+                value="\${value#\"}"
+                echo "TEST: \$key=\$value"
                 export "\$key=\$value"
               done
             done <<< "\$INPUT_PROPERTIES"
