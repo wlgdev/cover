@@ -259,87 +259,86 @@ runs:
 
         echo "Generated OUTPUT FILE is: $OUTPUT_FILE"
         cat $OUTPUT_FILE
-#
-#    - id: copy
-#      name: copy files fia ssh
-#      shell: bash
-#      env:
-#        TARGET_PATH: /data/compose/${{ github.event.repository.name }}
-#      run: |
-#        echo ""
-#        echo "========== COPY REPOSITORY TO REMOTE =========="
-#        echo ""
-#
-#        echo "${{ inputs.delete_before_deploy }}" | tr -s '[:space:]' '\n' | while read -r folder; do
-#          # Skip empty lines
-#          [[ -z "$folder" ]] && continue
-#
-#          if [ -d "$folder" ] || [ -f "$folder" ]; then
-#            echo "Deleting folder $folder"
-#            rm -rf "$folder"
-#          else
-#            echo "Skipping $folder (not found)"
-#          fi
-#        done
-#
-#        ssh -o StrictHostKeyChecking=no sshserver << EOF
-#          cd ${{ env.TARGET_PATH }}
-#          echo "STOP docker containers before copy"
-#          docker compose stop
-#          cd /
-#          rm -rf ${{ env.TARGET_PATH }}
-#          mkdir -p ${{ env.TARGET_PATH }}
-#        EOF
-#        scp -o StrictHostKeyChecking=no -r ./ sshserver:${{ env.TARGET_PATH }}/
-#
-#    - id: network
-#      name: init docker network
-#      shell: bash
-#      run: |
-#        echo ""
-#        echo "========== CREATE DOCKER NETWORK =========="
-#        echo ""
-#
-#        NETWORK_NAME=${{ steps.setup.outputs.network }}
-#        DOMAIN_NAME=${{ steps.setup.outputs.domain }}
-#
-#        ssh -o StrictHostKeyChecking=no sshserver << EOF
-#          # Check if the Docker network exists; if not, create it
-#          if ! docker network inspect "$NETWORK_NAME" >/dev/null 2>&1; then
-#            docker network create "$NETWORK_NAME"
-#            echo "CREATED: Docker network - $NETWORK_NAME"
-#          else
-#            echo "EXIST: Docker network present - $NETWORK_NAME"
-#          fi
-#
-#          # Connect all containers with 'traefik' image to created network
-#          for container in \$(docker ps --format '{{.ID}}'); do
-#            IMAGE=\$(docker inspect -f '{{.Config.Image}}' "\$container")
-#            if echo "\$IMAGE" | grep -qi 'traefik'; then
-#              if ! docker inspect -f '{{json .NetworkSettings.Networks}}' "\$container" | grep -q "$NETWORK_NAME"; then
-#                docker network connect "$NETWORK_NAME" "\$container"
-#                echo "CONNECTED: container to -> $NETWORK_NAME : \$(docker inspect -f '{{.Name}}' \$container)"
-#              else
-#                echo "EXISTED: already in -> $NETWORK_NAME : \$(docker inspect -f '{{.Name}}' \$container)"
-#              fi
-#            fi
-#          done
-#        EOF
-#
-#    - id: execute
-#      name: execute setup
-#      shell: bash
-#      env:
-#        TARGET_PATH: /data/compose/${{ github.event.repository.name }}
-#      run: |
-#        echo ""
-#        echo "========== EXECUTE SETUP =========="
-#        echo ""
-#
-#        ssh -o StrictHostKeyChecking=no sshserver << EOF
-#          cd ${{ env.TARGET_PATH }}
-#          echo "START docker containers: docker compose -f docker-compose.remote.yml -f docker-compose.override.yml up -d"
-#          docker compose -f docker-compose.remote.yml -f docker-compose.override.yml up -d
-#          echo "CLEAN: delete unused images"
-#          docker image prune -a -f
-#        EOF
+
+    - id: copy
+      name: copy files fia ssh
+      shell: bash
+      env:
+        TARGET_PATH: /data/compose/${{ github.event.repository.name }}
+      run: |
+        echo ""
+        echo "========== COPY REPOSITORY TO REMOTE =========="
+        echo ""
+
+        echo "${{ inputs.delete_before_deploy }}" | tr -s '[:space:]' '\n' | while read -r folder; do
+          # Skip empty lines
+          [[ -z "$folder" ]] && continue
+
+          if [ -d "$folder" ] || [ -f "$folder" ]; then
+            echo "Deleting folder $folder"
+            rm -rf "$folder"
+          else
+            echo "Skipping $folder (not found)"
+          fi
+        done
+
+        ssh -o StrictHostKeyChecking=no sshserver << EOF
+          cd ${{ env.TARGET_PATH }}
+          echo "STOP docker containers before copy"
+          docker compose stop
+          cd /
+          rm -rf ${{ env.TARGET_PATH }}
+          mkdir -p ${{ env.TARGET_PATH }}
+        EOF
+        scp -o StrictHostKeyChecking=no -r ./ sshserver:${{ env.TARGET_PATH }}/
+
+    - id: network
+      name: init docker network
+      shell: bash
+      run: |
+        echo ""
+        echo "========== CREATE DOCKER NETWORK =========="
+        echo ""
+
+        NETWORK_NAME=${{ steps.setup.outputs.network }}
+
+        ssh -o StrictHostKeyChecking=no sshserver << EOF
+          # Check if the Docker network exists; if not, create it
+          if ! docker network inspect "$NETWORK_NAME" >/dev/null 2>&1; then
+            docker network create "$NETWORK_NAME"
+            echo "CREATED: Docker network - $NETWORK_NAME"
+          else
+            echo "EXIST: Docker network present - $NETWORK_NAME"
+          fi
+
+          # Connect all containers with 'traefik' image to created network
+          for container in \$(docker ps --format '{{.ID}}'); do
+            IMAGE=\$(docker inspect -f '{{.Config.Image}}' "\$container")
+            if echo "\$IMAGE" | grep -qi 'traefik'; then
+              if ! docker inspect -f '{{json .NetworkSettings.Networks}}' "\$container" | grep -q "$NETWORK_NAME"; then
+                docker network connect "$NETWORK_NAME" "\$container"
+                echo "CONNECTED: container to -> $NETWORK_NAME : \$(docker inspect -f '{{.Name}}' \$container)"
+              else
+                echo "EXISTED: already in -> $NETWORK_NAME : \$(docker inspect -f '{{.Name}}' \$container)"
+              fi
+            fi
+          done
+        EOF
+
+    - id: execute
+      name: execute setup
+      shell: bash
+      env:
+        TARGET_PATH: /data/compose/${{ github.event.repository.name }}
+      run: |
+        echo ""
+        echo "========== EXECUTE SETUP =========="
+        echo ""
+
+        ssh -o StrictHostKeyChecking=no sshserver << EOF
+          cd ${{ env.TARGET_PATH }}
+          echo "START docker containers: docker compose -f docker-compose.remote.yml -f docker-compose.override.yml up -d"
+          docker compose -f docker-compose.remote.yml -f docker-compose.override.yml up -d
+          echo "CLEAN: delete unused images"
+          docker image prune -a -f
+        EOF
