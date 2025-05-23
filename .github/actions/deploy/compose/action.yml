@@ -63,6 +63,10 @@ runs:
           echo "::error::ERROR: composite path should not contain '../'"
           exit 1
         fi
+        if [ ! -d "$INPUT_FILE" ] || [ ! -f "$INPUT_FILE" ]; then
+          echo "::error::ERROR: cannot fine $INPUT_FILE"
+          exit 1
+        fi
 
         echo "${{ inputs.target }}" | tr -s '[:space:]' '\n' | while read -r target; do
           # Skip empty lines
