@@ -347,11 +347,12 @@ runs:
           cd ${{ env.TARGET_PATH }}
           echo "START docker containers: docker compose -f docker-compose.deploy.yml -f docker-compose.override.yml up -d"
         
+          PROPERTIES=$(echo "${{ inputs.env }}" | tr -s '[:space:]' '\n')
+          echo "PROPERTIES = $PROPERTIES"
           while read -r property; do
             echo "properties-in: $property"
           done <<< "$PROPERTIES"
           (
-            echo "DEBUG2: $ENV_PROPERTIES"
             while read -r property; do
               [[ -z "$property" ]] && continue
               IFS='=' read -r key value <<< "$property"
