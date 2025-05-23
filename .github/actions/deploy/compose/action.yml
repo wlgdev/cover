@@ -332,6 +332,7 @@ runs:
       shell: bash
       env:
         TARGET_PATH: /data/compose/${{ github.event.repository.name }}
+        ENV_PROPERTIES: ${{ inputs.env }}
       run: |
         echo ""
         echo "========== EXECUTE SETUP =========="
@@ -340,8 +341,7 @@ runs:
         ssh -o StrictHostKeyChecking=no sshserver << EOF
           cd ${{ env.TARGET_PATH }}
           echo "START docker containers: docker compose -f docker-compose.deploy.yml -f docker-compose.override.yml up -d"
-          echo "DEBUG1: ${{ inputs.env }}"
-          ENV_PROPERTIES="${{ inputs.env }}"
+          echo "DEBUG1: $ENV_PROPERTIES"
           (
             PROPERTIES=$(echo "$ENV_PROPERTIES" | tr -s '[:space:]' '\n')
             echo "DEBUG2: $PROPERTIES"
