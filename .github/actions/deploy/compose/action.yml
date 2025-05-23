@@ -343,6 +343,7 @@ runs:
           echo "START docker containers: docker compose -f docker-compose.deploy.yml -f docker-compose.override.yml up -d"
           echo "DEBUG1: $ENV_PROPERTIES"
           (
+            echo "DEBUG1.5: $ENV_PROPERTIES"
             PROPERTIES=$(echo "$ENV_PROPERTIES" | tr -s '[:space:]' '\n')
             echo "DEBUG2: $PROPERTIES"
             while read -r property; do
