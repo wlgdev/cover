@@ -358,13 +358,14 @@ runs:
           (
             while IFS= read -r line; do
               [[ -z "\$line" ]] && continue
-              read -ra tokens <<< "\$line"
+              if [[ "\$line" == *"../"* ]]; then
+                echo "SKIP: invalid property - \$line"
+                continue
+              fi
+              eval "tokens=(\$line)"
         
               for token in "\${tokens[@]}"; do
                 IFS='=' read -r key value <<< "\$token"
-                value="\${value%\"}"
-                value="\${value#\"}"
-                echo "TEST: \$key=\$value"
                 export "\$key=\$value"
               done
             done <<< "\$INPUT_PROPERTIES"
