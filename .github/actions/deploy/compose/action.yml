@@ -360,7 +360,7 @@ runs:
               [[ -z "\$line" ]] && continue
               eval "tokens=(\$line)"
         
-              for token in "${tokens[@]}"; do
+              for token in "\${tokens[@]}"; do
                 IFS='=' read -r key value <<< "\$token"
                 echo "TEST : \$key=\$value"
                 export "\$key=\$value"
