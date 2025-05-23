@@ -340,8 +340,10 @@ runs:
         ssh -o StrictHostKeyChecking=no sshserver << EOF
           cd ${{ env.TARGET_PATH }}
           echo "START docker containers: docker compose -f docker-compose.deploy.yml -f docker-compose.override.yml up -d"
+          echo "DEBUG: ${{ inputs.env }}"
           (
             PROPERTIES=$(echo "${{ inputs.env }}" | tr -s '[:space:]' '\n')
+            echo "DEBUG: $PROPERTIES"
             while read -r property; do
               [[ -z "$property" ]] && continue
               IFS='=' read -r key value <<< "$property"
