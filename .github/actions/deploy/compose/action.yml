@@ -342,6 +342,11 @@ runs:
           cd ${{ env.TARGET_PATH }}
           echo "START docker containers: docker compose -f docker-compose.deploy.yml -f docker-compose.override.yml up -d"
           echo "DEBUG1: $ENV_PROPERTIES"
+          TARGETS=$(echo "${{ inputs.env }}" | tr -s '[:space:]' '\n')
+          echo "TARGETES: $TARGETS"
+          while read -r target; do
+            echo "targets: $target"
+          done <<< "$TARGETS"
           (
             echo "DEBUG1.5: $ENV_PROPERTIES"
             PROPERTIES=$(echo "$ENV_PROPERTIES" | tr -s '[:space:]' '\n')
