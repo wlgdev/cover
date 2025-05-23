@@ -140,41 +140,41 @@ runs:
         echo "network=$NETWORK_NAME" >> $GITHUB_OUTPUT
         echo "NETWORK NAME = $NETWORK_NAME"
 
-#    - id: compose-remote
-#      name: create docker remote compose
-#      shell: bash
-#      run: |
-#        echo ""
-#        echo "========== GENERATE DOCKER COMPOSE (REMOTE) =========="
-#        echo ""
-#
-#        INPUT_FILE="docker-compose.yml"
-#        OUTPUT_FILE="docker-compose.remote.yml"
-#
-#        in_services_block=false
-#        in_ports_block=false
-#        > "$OUTPUT_FILE"
-#        while IFS= read -r line; do
-#          if [[ "$line" =~ ^services: ]]; then
-#            in_services=true
-#          elif [[ "$line" =~ ^[a-zA-Z0-9] ]]; then
-#            in_services=false
-#            in_ports=false
-#          fi
-#
-#          if $in_services && [[ "$line" =~ ^[[:space:]]+ports: ]]; then
-#            in_ports=true
-#            echo "# $line" >> "$OUTPUT_FILE"
-#          elif $in_ports && [[ "$line" =~ ^[[:space:]]+- ]]; then
-#            echo "# $line" >> "$OUTPUT_FILE"
-#          else
-#            in_ports=false
-#            echo "$line" >> "$OUTPUT_FILE"
-#          fi
-#        done < "$INPUT_FILE"
-#
-#        echo "Generated OUTPUT FILE is: $OUTPUT_FILE"
-#        cat $OUTPUT_FILE
+    - id: compose-remote
+      name: create docker remote compose
+      shell: bash
+      run: |
+        echo ""
+        echo "========== GENERATE DOCKER COMPOSE (REMOTE) =========="
+        echo ""
+
+        INPUT_FILE="docker-compose.yml"
+        OUTPUT_FILE="docker-compose.remote.yml"
+
+        in_services_block=false
+        in_ports_block=false
+        > "$OUTPUT_FILE"
+        while IFS= read -r line; do
+          if [[ "$line" =~ ^services: ]]; then
+            in_services=true
+          elif [[ "$line" =~ ^[a-zA-Z0-9] ]]; then
+            in_services=false
+            in_ports=false
+          fi
+
+          if $in_services && [[ "$line" =~ ^[[:space:]]+ports: ]]; then
+            in_ports=true
+            echo "# $line" >> "$OUTPUT_FILE"
+          elif $in_ports && [[ "$line" =~ ^[[:space:]]+- ]]; then
+            echo "# $line" >> "$OUTPUT_FILE"
+          else
+            in_ports=false
+            echo "$line" >> "$OUTPUT_FILE"
+          fi
+        done < "$INPUT_FILE"
+
+        echo "Generated OUTPUT FILE is: $OUTPUT_FILE"
+        cat $OUTPUT_FILE
 #
 #    - id: compose-override
 #      name: create docker override compose
