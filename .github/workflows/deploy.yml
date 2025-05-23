@@ -22,5 +22,4 @@ jobs:
             dummy:service:80
           env:
             FOO=BAR some="property value"
-            hak="rm -rf ./folder/../"
             KeY=VaLUe
