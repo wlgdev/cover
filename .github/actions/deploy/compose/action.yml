@@ -29,7 +29,11 @@ inputs:
 
   target:
     required: false
-    description: 'provide target as: ${DOMAIN_NAME}:${SERVICE_NAME}:${PORT}'
+    description: 'provide target as: ${SUBDOMAIN_NAME}:${SERVICE_NAME}:${PORT}'
+  domain:
+    required: false
+    description: 'default: wlg.tv'
+    default: "wlg.tv"
 
 # ----------------------------------------------------------------------
 
@@ -54,20 +58,20 @@ runs:
         
           # CHECK ALL NON EMPTY
           if [[ -z "$DOMAIN_NAME" ]]; then
-            echo ::error::ERROR: domain name should be provided for "target" input
-            echo ::warning::expected input format: DOMAIN:SERVICE:PORT
-            echo ::warning::domain will be appended as: ${DOMAIN}.wlg.tv
+            echo ::error::ERROR: subdomain name should be provided for "target" input
+            echo ::warning::expected input format: SUBDOMAIN:SERVICE:PORT
+            echo ::warning::domain will be appended as: ${DOMAIN}.${{ inputs.domain }}
             exit 1
           fi
           if [[ -z "$SERVICE_NAME" ]]; then
             echo ::error::ERROR: service name should be provided for "target" input
-            echo ::warning::expected input format: DOMAIN:SERVICE:PORT
+            echo ::warning::expected input format: SUBDOMAIN:SERVICE:PORT
             echo ::warning::SERVICE name is the name of service from docker-compose.yml
             exit 1
           fi
           if [[ -z "$PORT" ]]; then
             echo ::error::ERROR: port number should be provided for "target" input
-            echo ::warning::expected input format: DOMAIN:SERVICE:PORT
+            echo ::warning::expected input format: SUBDOMAIN:SERVICE:PORT
             exit 1
           fi
         
@@ -94,7 +98,7 @@ runs:
           if [ "${{ env.BRANCH_NAME }}" != "master" ]; then
             DOMAIN_NAME=$DOMAIN_NAME.dev
           fi
-          DOMAIN_NAME=$DOMAIN_NAME.wlg.tv
+          DOMAIN_NAME=$DOMAIN_NAME.${{ inputs.domain }}
           echo "TARGET: $DOMAIN_NAME -> $SERVICE_NAME:$PORT"
         done
 
@@ -214,6 +218,12 @@ runs:
               # Skip empty lines
               [[ -z "$target" ]] && continue
               IFS=':' read -r TARGET_DOMAIN TARGET_SERVICE TARGET_PORT <<< "$target"
+        
+              # SET TARGET DOMAIN NAME
+              if [ "${{ env.BRANCH_NAME }}" != "master" ]; then
+                TARGET_DOMAIN=TARGET_DOMAIN.dev
+              fi
+              TARGET_DOMAIN=TARGET_DOMAIN.${{ inputs.domain }}
         
               if [[ "$actual_service" == "$TARGET_SERVICE" ]]; then
                 target_found=true
