@@ -184,6 +184,8 @@ runs:
         echo "========== GENERATE DOCKER COMPOSE (OVERRIDE) =========="
         echo ""
 
+        # echo "${{ inputs.target }}" | tr -s '[:space:]' '\n'
+        TARGETS=$(echo "${{ inputs.target }}" | tr -s '[:space:]' '\n')
         INPUT_FILE="docker-compose.yml"
         OUTPUT_FILE="docker-compose.override.yml"
 
@@ -208,12 +210,12 @@ runs:
           if $in_services_block && [[ "$line" =~ ^[[:space:]]{2}([a-zA-Z0-9_-]+): ]]; then
             actual_service="${BASH_REMATCH[1]}"
             target_found=false
-            echo "${{ inputs.target }}" | tr -s '[:space:]' '\n' | while read -r target; do
+            while read -r target; do
               # Skip empty lines
               [[ -z "$target" ]] && continue
               IFS=':' read -r TARGET_DOMAIN TARGET_SERVICE TARGET_PORT <<< "$target"
         
-              if [ "$actual_service" == "$TARGET_SERVICE" ]; then
+              if [[ "$actual_service" == "$TARGET_SERVICE" ]]; then
                 target_found=true
                 {
                   echo "  $actual_service:"
@@ -230,11 +232,12 @@ runs:
                   echo "      - \"traefik.http.routers.$actual_service.middlewares=redirect-to-https\""
                   echo "      - \"traefik.docker.network=${{ steps.setup.outputs.network }}\""
                 } >> "$OUTPUT_FILE"
+                break
               fi
-            done
-            if [ "$target_found" = false ]; then
+            done <<< "$TARGETS"
+            if ! $target_found; then
               {
-                echo "  $service:"
+                echo "  $actual_service:"
                 echo "    networks:"
                 echo "      - default"
               } >> "$OUTPUT_FILE"
