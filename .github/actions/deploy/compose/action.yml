@@ -183,6 +183,8 @@ runs:
     - id: compose-override
       name: create docker override compose
       shell: bash
+      env:
+        BRANCH_NAME: ${{ github.ref_name }}
       run: |
         echo ""
         echo "========== GENERATE DOCKER COMPOSE (OVERRIDE) =========="
