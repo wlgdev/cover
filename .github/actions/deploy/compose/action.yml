@@ -337,19 +337,20 @@ runs:
         echo "========== EXECUTE SETUP =========="
         echo ""
 
-        PROPERTIES=$(echo "${{ inputs.env }}" | tr -s '[:space:]' '\n')
-        echo "PROPERTIES = $PROPERTIES"
-        while read -r property; do
-          echo "properties: $property"
-        done <<< "$PROPERTIES"
+        echo "START docker containers: docker compose -f docker-compose.deploy.yml -f docker-compose.override.yml up -d"
+        
+        #PROPERTIES=$(echo "${{ inputs.env }}" | tr -s '[:space:]' '\n')
+        #echo "PROPERTIES = $PROPERTIES"
+        #while read -r property; do
+        #  echo "properties: $property"
+        #done <<< "$PROPERTIES"
 
         ssh -o StrictHostKeyChecking=no sshserver << EOF
           cd ${{ env.TARGET_PATH }}
-          echo "START docker containers: docker compose -f docker-compose.deploy.yml -f docker-compose.override.yml up -d"
         
           PROPERTIES='${{ inputs.env }}'
           echo "PROPERTIES = \$PROPERTIES"
-          ENV_PROPERTIES=$(echo "\$PROPERTIES" | tr -s '[:space:]' '\n')
+          ENV_PROPERTIES=\$(echo "\$PROPERTIES" | tr -s '[:space:]' '\n')
           echo "ENV_PROPERTIES = \$ENV_PROPERTIES"
         
           while read -r property; do
