@@ -19,3 +19,4 @@ jobs:
             ./test
           target:
             cover:nginx:80
+            dummy:service:81
