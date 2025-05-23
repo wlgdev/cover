@@ -221,9 +221,9 @@ runs:
         
               # SET TARGET DOMAIN NAME
               if [ "${{ env.BRANCH_NAME }}" != "master" ]; then
-                TARGET_DOMAIN=TARGET_DOMAIN.dev
+                TARGET_DOMAIN=$TARGET_DOMAIN.dev
               fi
-              TARGET_DOMAIN=TARGET_DOMAIN.${{ inputs.domain }}
+              TARGET_DOMAIN=$TARGET_DOMAIN.${{ inputs.domain }}
         
               if [[ "$actual_service" == "$TARGET_SERVICE" ]]; then
                 target_found=true
