@@ -362,7 +362,6 @@ runs:
         
               for token in "\${tokens[@]}"; do
                 IFS='=' read -r key value <<< "\$token"
-                echo "TEST : \$key=\$value"
                 export "\$key=\$value"
               done
             done <<< "\$INPUT_PROPERTIES"
