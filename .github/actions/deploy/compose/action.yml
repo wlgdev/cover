@@ -49,13 +49,13 @@ runs:
         echo ""
         echo "========== VALIDATE TARGETS =========="
         echo ""
-        
+
         echo "${{ inputs.target }}" | tr -s '[:space:]' '\n' | while read -r target; do
           # Skip empty lines
           [[ -z "$target" ]] && continue
-        
+
           IFS=':' read -r DOMAIN_NAME SERVICE_NAME PORT <<< "$target"
-        
+
           # CHECK ALL NON EMPTY
           if [[ -z "$DOMAIN_NAME" ]]; then
             echo ::error::ERROR: subdomain name should be provided for "target" input
@@ -74,7 +74,7 @@ runs:
             echo ::warning::expected input format: SUBDOMAIN:SERVICE:PORT
             exit 1
           fi
-        
+
           # CHECK DOMAIN INPUT FORMAT (basic check: letters, numbers, dots, and dashes)
           if ! [[ "$DOMAIN_NAME" =~ ^[a-zA-Z0-9.-]+$ ]]; then
             echo "::error::ERROR: Invalid domain name format."
@@ -93,7 +93,7 @@ runs:
             echo "::error::ERROR: port must be between 1 and 65535."
             exit 1
           fi
-        
+
           # VALIDATE BRANCH NAME FOR TARGET DOMAIN NAME
           if [ "${{ env.BRANCH_NAME }}" != "master" ]; then
             DOMAIN_NAME=$DOMAIN_NAME.dev
@@ -151,7 +151,7 @@ runs:
         echo ""
         echo "========== GENERATE DOCKER COMPOSE (REMOTE) =========="
         echo ""
-
+        
         INPUT_FILE="docker-compose.yml"
         OUTPUT_FILE="docker-compose.remote.yml"
 
@@ -165,7 +165,7 @@ runs:
             in_services=false
             in_ports=false
           fi
-
+        
           if $in_services && [[ "$line" =~ ^[[:space:]]+ports: ]]; then
             in_ports=true
             echo "# $line" >> "$OUTPUT_FILE"
@@ -176,7 +176,7 @@ runs:
             echo "$line" >> "$OUTPUT_FILE"
           fi
         done < "$INPUT_FILE"
-
+        
         echo "Generated OUTPUT FILE is: $OUTPUT_FILE"
         cat $OUTPUT_FILE
 
@@ -189,12 +189,11 @@ runs:
         echo ""
         echo "========== GENERATE DOCKER COMPOSE (OVERRIDE) =========="
         echo ""
-
-        # echo "${{ inputs.target }}" | tr -s '[:space:]' '\n'
+        
         TARGETS=$(echo "${{ inputs.target }}" | tr -s '[:space:]' '\n')
         INPUT_FILE="docker-compose.yml"
         OUTPUT_FILE="docker-compose.override.yml"
-
+        
         in_services_block=false
         echo "networks:" >> "$OUTPUT_FILE"
         echo "  ${{ steps.setup.outputs.network }}:" >> "$OUTPUT_FILE"
@@ -206,12 +205,12 @@ runs:
             in_services_block=true
             continue
           fi
-
+        
           # Stop when hitting another top-level key
           if $in_services_block && [[ "$line" =~ ^[a-zA-Z0-9_-]+: ]]; then
             break
           fi
-
+        
           # Match lines indented exactly 2 spaces (first-level keys under services)
           if $in_services_block && [[ "$line" =~ ^[[:space:]]{2}([a-zA-Z0-9_-]+): ]]; then
             actual_service="${BASH_REMATCH[1]}"
@@ -220,13 +219,13 @@ runs:
               # Skip empty lines
               [[ -z "$target" ]] && continue
               IFS=':' read -r TARGET_DOMAIN TARGET_SERVICE TARGET_PORT <<< "$target"
-        
+
               # SET TARGET DOMAIN NAME
               if [ "${{ env.BRANCH_NAME }}" != "master" ]; then
                 TARGET_DOMAIN=$TARGET_DOMAIN.dev
               fi
               TARGET_DOMAIN=$TARGET_DOMAIN.${{ inputs.domain }}
-        
+
               if [[ "$actual_service" == "$TARGET_SERVICE" ]]; then
                 target_found=true
                 {
@@ -256,7 +255,7 @@ runs:
             fi
           fi
         done < "$INPUT_FILE"
-
+        
         echo "Generated OUTPUT FILE is: $OUTPUT_FILE"
         cat $OUTPUT_FILE
 
@@ -269,11 +268,11 @@ runs:
         echo ""
         echo "========== COPY REPOSITORY TO REMOTE =========="
         echo ""
-
+        
         echo "${{ inputs.delete_before_deploy }}" | tr -s '[:space:]' '\n' | while read -r folder; do
           # Skip empty lines
           [[ -z "$folder" ]] && continue
-
+        
           if [ -d "$folder" ] || [ -f "$folder" ]; then
             echo "Deleting folder $folder"
             rm -rf "$folder"
@@ -281,7 +280,7 @@ runs:
             echo "Skipping $folder (not found)"
           fi
         done
-
+        
         ssh -o StrictHostKeyChecking=no sshserver << EOF
           cd ${{ env.TARGET_PATH }}
           echo "STOP docker containers before copy"
@@ -299,9 +298,9 @@ runs:
         echo ""
         echo "========== CREATE DOCKER NETWORK =========="
         echo ""
-
+        
         NETWORK_NAME=${{ steps.setup.outputs.network }}
-
+        
         ssh -o StrictHostKeyChecking=no sshserver << EOF
           # Check if the Docker network exists; if not, create it
           if ! docker network inspect "$NETWORK_NAME" >/dev/null 2>&1; then
@@ -310,7 +309,7 @@ runs:
           else
             echo "EXIST: Docker network present - $NETWORK_NAME"
           fi
-
+        
           # Connect all containers with 'traefik' image to created network
           for container in \$(docker ps --format '{{.ID}}'); do
             IMAGE=\$(docker inspect -f '{{.Config.Image}}' "\$container")
