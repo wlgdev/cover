@@ -349,7 +349,7 @@ runs:
         
           PROPERTIES='${{ inputs.env }}'
           echo "PROPERTIES = \$PROPERTIES"
-          ENV_PROPERTIES=$(echo "$PROPERTIES" | tr -s '[:space:]' '\n')
+          ENV_PROPERTIES=$(echo "\$PROPERTIES" | tr -s '[:space:]' '\n')
           echo "ENV_PROPERTIES = $ENV_PROPERTIES"
         
           while read -r property; do
