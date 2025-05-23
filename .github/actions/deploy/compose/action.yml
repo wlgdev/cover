@@ -338,33 +338,25 @@ runs:
         echo ""
 
         echo "START docker containers: docker compose -f docker-compose.deploy.yml -f docker-compose.override.yml up -d"
-        
-        #PROPERTIES=$(echo "${{ inputs.env }}" | tr -s '[:space:]' '\n')
-        #echo "PROPERTIES = $PROPERTIES"
-        #while read -r property; do
-        #  echo "properties: $property"
-        #done <<< "$PROPERTIES"
 
         ssh -o StrictHostKeyChecking=no sshserver << EOF
           cd ${{ env.TARGET_PATH }}
         
-          PROPERTIES='${{ inputs.env }}'
-          echo "PROPERTIES = \$PROPERTIES"
-          ENV_PROPERTIES=\$(echo "\$PROPERTIES" | tr -s '[:space:]' '\n')
-          echo "ENV_PROPERTIES = \$ENV_PROPERTIES"
+          INPUT_PROPERTIES='${{ inputs.env }}'
+          ENV_PROPERTIES=\$(echo "\$INPUT_PROPERTIES" | tr -s '[:space:]' '\n')
         
           (
             while read -r property; do
               [[ -z "\$property" ]] && continue
-              echo "properties-in: \$property"
               IFS='=' read -r key value <<< "\$property"
-              echo "test: \$key=\$value"
               export "\$key=\$value"
             done <<< "\$ENV_PROPERTIES"
             docker compose -f docker-compose.deploy.yml -f docker-compose.override.yml up -d
           )
           
+          unset INPUT_PROPERTIES
           unset ENV_PROPERTIES
+        
           echo "CLEAN: delete unused images"
           docker image prune -a -f
           docker builder prune -a -f
