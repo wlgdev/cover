@@ -175,64 +175,75 @@ runs:
 
         echo "Generated OUTPUT FILE is: $OUTPUT_FILE"
         cat $OUTPUT_FILE
-#
-#    - id: compose-override
-#      name: create docker override compose
-#      shell: bash
-#      run: |
-#        echo ""
-#        echo "========== GENERATE DOCKER COMPOSE (OVERRIDE) =========="
-#        echo ""
-#
-#        INPUT_FILE="docker-compose.yml"
-#        OUTPUT_FILE="docker-compose.override.yml"
-#
-#        in_services_block=false
-#        echo "networks:" >> "$OUTPUT_FILE"
-#        echo "  ${{ steps.setup.outputs.network }}:" >> "$OUTPUT_FILE"
-#        echo "    external: true" >> "$OUTPUT_FILE"
-#        echo "services:" >> "$OUTPUT_FILE"
-#        while IFS= read -r line; do
-#          # Detect start of services block
-#          if [[ "$line" =~ ^services: ]]; then
-#            in_services_block=true
-#            continue
-#          fi
-#
-#          # Stop when hitting another top-level key
-#          if $in_services_block && [[ "$line" =~ ^[a-zA-Z0-9_-]+: ]]; then
-#            break
-#          fi
-#
-#          # Match lines indented exactly 2 spaces (first-level keys under services)
-#          if $in_services_block && [[ "$line" =~ ^[[:space:]]{2}([a-zA-Z0-9_-]+): ]]; then
-#            service="${BASH_REMATCH[1]}"
-#            {
-#              if [ "$service" == "${{ steps.setup.outputs.host }}" ]; then
-#                echo "  $service:"
-#                echo "    networks:"
-#                echo "      - default"
-#                echo "      - ${{ steps.setup.outputs.network }}"
-#                echo "    labels:"
-#                echo "      - \"traefik.enable=true\""
-#                echo "      - \"traefik.http.routers.$service.rule=Host(\`${{ steps.setup.outputs.domain }}\`)\""
-#                echo "      - \"traefik.http.routers.$service.entrypoints=websecure\""
-#                echo "      - \"traefik.http.routers.$service.tls.certresolver=letsencrypt\""
-#                echo "      - \"traefik.http.services.$service.loadbalancer.server.port=${{ steps.setup.outputs.port }}\""
-#                echo "      - \"traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https\""
-#                echo "      - \"traefik.http.routers.$service.middlewares=redirect-to-https\""
-#                echo "      - \"traefik.docker.network=${{ steps.setup.outputs.network }}\""
-#              else
-#                echo "  $service:"
-#                echo "    networks:"
-#                echo "      - default"
-#              fi
-#            } >> "$OUTPUT_FILE"
-#          fi
-#        done < "$INPUT_FILE"
-#
-#        echo "Generated OUTPUT FILE is: $OUTPUT_FILE"
-#        cat $OUTPUT_FILE
+
+    - id: compose-override
+      name: create docker override compose
+      shell: bash
+      run: |
+        echo ""
+        echo "========== GENERATE DOCKER COMPOSE (OVERRIDE) =========="
+        echo ""
+
+        INPUT_FILE="docker-compose.yml"
+        OUTPUT_FILE="docker-compose.override.yml"
+
+        in_services_block=false
+        echo "networks:" >> "$OUTPUT_FILE"
+        echo "  ${{ steps.setup.outputs.network }}:" >> "$OUTPUT_FILE"
+        echo "    external: true" >> "$OUTPUT_FILE"
+        echo "services:" >> "$OUTPUT_FILE"
+        while IFS= read -r line; do
+          # Detect start of services block
+          if [[ "$line" =~ ^services: ]]; then
+            in_services_block=true
+            continue
+          fi
+
+          # Stop when hitting another top-level key
+          if $in_services_block && [[ "$line" =~ ^[a-zA-Z0-9_-]+: ]]; then
+            break
+          fi
+
+          # Match lines indented exactly 2 spaces (first-level keys under services)
+          if $in_services_block && [[ "$line" =~ ^[[:space:]]{2}([a-zA-Z0-9_-]+): ]]; then
+            actual_service="${BASH_REMATCH[1]}"
+            target_found=false
+            echo "${{ inputs.target }}" | tr -s '[:space:]' '\n' | while read -r target; do
+              # Skip empty lines
+              [[ -z "$target" ]] && continue
+              IFS=':' read -r TARGET_DOMAIN TARGET_SERVICE TARGET_PORT <<< "$target"
+        
+              {
+                if [ "$actual_service" == "$TARGET_SERVICE" ]; then
+                  target_found=true
+                  echo "  $actual_service:"
+                  echo "    networks:"
+                  echo "      - default"
+                  echo "      - ${{ steps.setup.outputs.network }}"
+                  echo "    labels:"
+                  echo "      - \"traefik.enable=true\""
+                  echo "      - \"traefik.http.routers.$actual_service.rule=Host(\`$TARGET_DOMAIN\`)\""
+                  echo "      - \"traefik.http.routers.$actual_service.entrypoints=websecure\""
+                  echo "      - \"traefik.http.routers.$actual_service.tls.certresolver=letsencrypt\""
+                  echo "      - \"traefik.http.services.$actual_service.loadbalancer.server.port=$TARGET_PORT\""
+                  echo "      - \"traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https\""
+                  echo "      - \"traefik.http.routers.$actual_service.middlewares=redirect-to-https\""
+                  echo "      - \"traefik.docker.network=${{ steps.setup.outputs.network }}\""
+                fi
+              } >> "$OUTPUT_FILE"
+            done
+            if $target_found then
+              {
+                echo "  $service:"
+                echo "    networks:"
+                echo "      - default"
+              } >> "$OUTPUT_FILE"
+            fi
+          fi
+        done < "$INPUT_FILE"
+
+        echo "Generated OUTPUT FILE is: $OUTPUT_FILE"
+        cat $OUTPUT_FILE
 #
 #    - id: copy
 #      name: copy files fia ssh
