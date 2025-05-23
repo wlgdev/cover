@@ -338,9 +338,10 @@ runs:
         echo "========== EXECUTE SETUP =========="
         echo ""
 
+        TARGETS=$(echo "${{ inputs.env }}" | tr -s '[:space:]' '\n')
         while read -r target; do
           echo "targets1: $target"
-        done <<< "${{ inputs.env }}"
+        done <<< "$TARGETS"
 
         ssh -o StrictHostKeyChecking=no sshserver << EOF
           cd ${{ env.TARGET_PATH }}
