@@ -353,7 +353,7 @@ runs:
           echo "ENV_PROPERTIES = \$ENV_PROPERTIES"
         
           while read -r property; do
-            echo "properties-in: $property"
+            echo "properties-in: \$property"
           done <<< "\$ENV_PROPERTIES"
           (
             while read -r property; do
