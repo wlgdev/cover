@@ -1,8 +1,15 @@
+# FILE: ./.github/actions/deploy/compose/action.yml
+# DESCRIPTION: allows deploying applications with a docker-compose.yml file
+#              generates: docker-compose.remote.yml with commented ports for all services
+#                         as it runs under reverse-proxy we do not need to expose ports (to access by domain only)
+#              generates: docker-compose.override.yml for to self-create SSL certificate using traefik
+#                         with assigned to docker network for specified service name together with traefik
+#              service name will be accessible by https://${DOMAIN_NAME}.wlg.tv for ${TARGET_SERVICE}:${TARGET_PORT}
+
 name: deploy [DOCKER-COMPOSE]
 description: copy by ssh sources to remote and runs compose docker command
 
 inputs:
-
   ssh_private_key:
     required: true
     description: 'ssh: private key'
@@ -20,19 +27,77 @@ inputs:
     required: false
     description: "delete folders before running 'docker compose up'"
 
-  domain_name:
-    required: true
-    description: 'domain name for project ${DOMAIN_NAME}.wlg.tv'
-  target_service:
+  target:
     required: false
-    description: 'service name of docker-compose.yml for proxy'
-  target_port:
-    required: false
-    description: 'service port of docker-compose.yml for proxy'
+    description: 'provide target as: ${DOMAIN_NAME}:${SERVICE_NAME}:${PORT}'
+
+# ----------------------------------------------------------------------
 
 runs:
   using: composite
   steps:
+    - id: validate
+      name: validate input details before start
+      shell: bash
+      env:
+        BRANCH_NAME: ${{ github.ref_name }}
+      run: |
+        echo ""
+        echo "========== VALIDATE TARGETS =========="
+        echo ""
+        
+        echo "${{ inputs.target }}" | tr -s '[:space:]' '\n' | while read -r target; do
+          # Skip empty lines
+          [[ -z "$target" ]] && continue
+        
+          IFS=':' read -r DOMAIN_NAME SERVICE_NAME PORT <<< "$target"
+        
+          # CHECK ALL NON EMPTY
+          if [[ -z "$DOMAIN_NAME" ]]; then
+            echo ::error::ERROR: domain name should be provided for "target" input
+            echo ::warning::expected input format: DOMAIN:SERVICE:PORT
+            echo ::warning::domain will be appended as: ${DOMAIN}.wlg.tv
+            exit 1
+          fi
+          if [[ -z "$SERVICE_NAME" ]]; then
+            echo ::error::ERROR: service name should be provided for "target" input
+            echo ::warning::expected input format: DOMAIN:SERVICE:PORT
+            echo ::warning::SERVICE name is the name of service from docker-compose.yml
+            exit 1
+          fi
+          if [[ -z "$PORT" ]]; then
+            echo ::error::ERROR: port number should be provided for "target" input
+            echo ::warning::expected input format: DOMAIN:SERVICE:PORT
+            exit 1
+          fi
+        
+          # CHECK DOMAIN INPUT FORMAT (basic check: letters, numbers, dots, and dashes)
+          if ! [[ "$DOMAIN_NAME" =~ ^[a-zA-Z0-9.-]+$ ]]; then
+            echo "::error::ERROR: Invalid domain name format."
+            exit 1
+          fi
+          # CHECK SERVICE INPUT FORMAT (letters, numbers, dashes, underscores)
+          if ! [[ "$SERVICE_NAME" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+            echo "::error::ERROR: Invalid service name format."
+            exit 1
+          fi
+          # CHECK PORT INPUT FORMAT (numeric and valid port range)
+          if ! [[ "$PORT" =~ ^[0-9]+$ ]]; then
+            echo "::error::ERROR: port must be numeric."
+            exit 1
+          elif (( PORT < 1 || PORT > 65535 )); then
+            echo "::error::ERROR: port must be between 1 and 65535."
+            exit 1
+          fi
+        
+          # VALIDATE BRANCH NAME FOR TARGET DOMAIN NAME
+          if [ "${{ env.BRANCH_NAME }}" != "master" ]; then
+            DOMAIN_NAME=$DOMAIN_NAME.dev
+          fi
+          DOMAIN_NAME=$DOMAIN_NAME.wlg.tv
+          echo "TARGET: $DOMAIN_NAME -> $SERVICE_NAME:$PORT"
+        done
+
     - id: ssh
       name: create ssh configuration
       shell: bash
@@ -60,220 +125,195 @@ runs:
       shell: bash
       env:
         REPOSITORY_NAME: ${{ github.event.repository.name }}
-        INPUT_DOMAIN_NAME: ${{ inputs.domain_name }}
-        INPUT_TARGET_HOST: ${{ inputs.target_service }}
-        INPUT_TARGET_PORT: ${{ inputs.target_port }}
         BRANCH_NAME: ${{ github.ref_name }}
       run: |
         echo ""
-        echo "========== SETUP NETWORK/DOMAIN NAMES =========="
+        echo "========== SETUP NETWORK =========="
         echo ""
         
         NETWORK_NAME=proxy-${{ env.REPOSITORY_NAME }}-network
-        DOMAIN_NAME=${{ env.INPUT_DOMAIN_NAME }}
-        TARGET_HOST=${{ env.INPUT_TARGET_HOST }}
-        TARGET_PORT=${{ env.INPUT_TARGET_PORT }}
-        
         if [ "${{ env.BRANCH_NAME }}" != "master" ]; then
           NETWORK_NAME=$NETWORK_NAME-dev
-          DOMAIN_NAME=$DOMAIN_NAME.dev
           echo "NETWORK NAME DEV = $NETWORK_NAME"
         fi
-        DOMAIN_NAME=$DOMAIN_NAME.wlg.tv
         
         echo "network=$NETWORK_NAME" >> $GITHUB_OUTPUT
-        echo "domain=$DOMAIN_NAME" >> $GITHUB_OUTPUT
-        echo "host=$TARGET_HOST" >> $GITHUB_OUTPUT
-        echo "port=$TARGET_PORT" >> $GITHUB_OUTPUT
-        
         echo "NETWORK NAME = $NETWORK_NAME"
-        echo "DOMAIN NAME  = $DOMAIN_NAME"
-        echo "TARGET HOST  = $TARGET_HOST"
-        echo "TARGET PORT  = $TARGET_PORT"
 
-    - id: compose-remote
-      name: create docker remote compose
-      shell: bash
-      run: |
-        echo ""
-        echo "========== GENERATE DOCKER COMPOSE (REMOTE) =========="
-        echo ""
-        
-        INPUT_FILE="docker-compose.yml"
-        OUTPUT_FILE="docker-compose.remote.yml"
-
-        in_services_block=false
-        in_ports_block=false
-        > "$OUTPUT_FILE"
-        while IFS= read -r line; do
-          if [[ "$line" =~ ^services: ]]; then
-            in_services=true
-          elif [[ "$line" =~ ^[a-zA-Z0-9] ]]; then
-            in_services=false
-            in_ports=false
-          fi
-        
-          if $in_services && [[ "$line" =~ ^[[:space:]]+ports: ]]; then
-            in_ports=true
-            echo "# $line" >> "$OUTPUT_FILE"
-          elif $in_ports && [[ "$line" =~ ^[[:space:]]+- ]]; then
-            echo "# $line" >> "$OUTPUT_FILE"
-          else
-            in_ports=false
-            echo "$line" >> "$OUTPUT_FILE"
-          fi
-        done < "$INPUT_FILE"
-        
-        echo "Generated OUTPUT FILE is: $OUTPUT_FILE"
-        cat $OUTPUT_FILE
-
-    - id: compose-override
-      name: create docker override compose
-      shell: bash
-      run: |
-        echo ""
-        echo "========== GENERATE DOCKER COMPOSE (OVERRIDE) =========="
-        echo ""
-
-        INPUT_FILE="docker-compose.yml"
-        OUTPUT_FILE="docker-compose.override.yml"
-        
-        in_services_block=false
-        echo "networks:" >> "$OUTPUT_FILE"
-        echo "  ${{ steps.setup.outputs.network }}:" >> "$OUTPUT_FILE"
-        echo "    external: true" >> "$OUTPUT_FILE"
-        echo "services:" >> "$OUTPUT_FILE"
-        while IFS= read -r line; do
-          # Detect start of services block
-          if [[ "$line" =~ ^services: ]]; then
-            in_services_block=true
-            continue
-          fi
-        
-          # Stop when hitting another top-level key
-          if $in_services_block && [[ "$line" =~ ^[a-zA-Z0-9_-]+: ]]; then
-            break
-          fi
-        
-          # Match lines indented exactly 2 spaces (first-level keys under services)
-          if $in_services_block && [[ "$line" =~ ^[[:space:]]{2}([a-zA-Z0-9_-]+): ]]; then
-            service="${BASH_REMATCH[1]}"
-            {
-              if [ "$service" == "${{ steps.setup.outputs.host }}" ]; then
-                echo "  $service:"
-                echo "    networks:"
-                echo "      - default"
-                echo "      - ${{ steps.setup.outputs.network }}"
-                echo "    labels:"
-                echo "      - \"traefik.enable=true\""
-                echo "      - \"traefik.http.routers.$service.rule=Host(\`${{ steps.setup.outputs.domain }}\`)\""
-                echo "      - \"traefik.http.routers.$service.entrypoints=websecure\""
-                echo "      - \"traefik.http.routers.$service.tls.certresolver=letsencrypt\""
-                echo "      - \"traefik.http.services.$service.loadbalancer.server.port=${{ steps.setup.outputs.port }}\""
-                echo "      - \"traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https\""
-                echo "      - \"traefik.http.routers.$service.middlewares=redirect-to-https\""
-                echo "      - \"traefik.docker.network=${{ steps.setup.outputs.network }}\""
-              else
-                echo "  $service:"
-                echo "    networks:"
-                echo "      - default"
-              fi
-            } >> "$OUTPUT_FILE"
-          fi
-        done < "$INPUT_FILE"
-        
-        echo "Generated OUTPUT FILE is: $OUTPUT_FILE"
-        cat $OUTPUT_FILE
-
-    - id: copy
-      name: copy files fia ssh
-      shell: bash
-      env:
-        TARGET_PATH: /data/compose/${{ github.event.repository.name }}
-      run: |
-        echo ""
-        echo "========== COPY REPOSITORY TO REMOTE =========="
-        echo ""
-        
-        echo "${{ inputs.delete_before_deploy }}" | tr -s '[:space:]' '\n' | while read -r folder; do
-          # Skip empty lines
-          [[ -z "$folder" ]] && continue
-        
-          if [ -d "$folder" ] || [ -f "$folder" ]; then
-            echo "Deleting folder $folder"
-            rm -rf "$folder"
-          else
-            echo "Skipping $folder (not found)"
-          fi
-        done
-        
-        ssh -o StrictHostKeyChecking=no sshserver << EOF
-          cd ${{ env.TARGET_PATH }}
-          echo "STOP docker containers before copy"
-          docker compose stop
-          cd /
-          rm -rf ${{ env.TARGET_PATH }}
-          mkdir -p ${{ env.TARGET_PATH }}
-        EOF
-        scp -o StrictHostKeyChecking=no -r ./ sshserver:${{ env.TARGET_PATH }}/
-
-    - id: network
-      name: init docker network
-      shell: bash
-      run: |
-        echo ""
-        echo "========== CREATE DOCKER NETWORK =========="
-        echo ""
-        
-        NETWORK_NAME=${{ steps.setup.outputs.network }}
-        DOMAIN_NAME=${{ steps.setup.outputs.domain }}
-        
-        ssh -o StrictHostKeyChecking=no sshserver << EOF
-          # Check if the Docker network exists; if not, create it
-          if ! docker network inspect "$NETWORK_NAME" >/dev/null 2>&1; then
-            docker network create "$NETWORK_NAME"
-            echo "CREATED: Docker network - $NETWORK_NAME"
-          else
-            echo "EXIST: Docker network present - $NETWORK_NAME"
-          fi
-        
-          # Connect all containers with 'traefik' image to created network
-          for container in \$(docker ps --format '{{.ID}}'); do
-            IMAGE=\$(docker inspect -f '{{.Config.Image}}' "\$container")
-            if echo "\$IMAGE" | grep -qi 'traefik'; then
-              if ! docker inspect -f '{{json .NetworkSettings.Networks}}' "\$container" | grep -q "$NETWORK_NAME"; then
-                docker network connect "$NETWORK_NAME" "\$container"
-                echo "CONNECTED: container to -> $NETWORK_NAME : \$(docker inspect -f '{{.Name}}' \$container)"
-              else
-                echo "EXISTED: already in -> $NETWORK_NAME : \$(docker inspect -f '{{.Name}}' \$container)"
-              fi
-            fi
-          done
-        EOF
-
-    - id: execute
-      name: execute setup
-      shell: bash
-      env:
-        TARGET_PATH: /data/compose/${{ github.event.repository.name }}
-      run: |
-        echo ""
-        echo "========== EXECUTE SETUP =========="
-        echo ""
-
-        ssh -o StrictHostKeyChecking=no sshserver << EOF
-          cd ${{ env.TARGET_PATH }}
-          echo "START docker containers: docker compose -f docker-compose.remote.yml -f docker-compose.override.yml up -d"
-          docker compose -f docker-compose.remote.yml -f docker-compose.override.yml up -d
-          echo "CLEAN: delete unused images"
-          docker image prune -a -f
-        EOF
-
-# BACKUP DATA
+#    - id: compose-remote
+#      name: create docker remote compose
+#      shell: bash
+#      run: |
+#        echo ""
+#        echo "========== GENERATE DOCKER COMPOSE (REMOTE) =========="
+#        echo ""
+#
+#        INPUT_FILE="docker-compose.yml"
+#        OUTPUT_FILE="docker-compose.remote.yml"
+#
+#        in_services_block=false
+#        in_ports_block=false
+#        > "$OUTPUT_FILE"
+#        while IFS= read -r line; do
+#          if [[ "$line" =~ ^services: ]]; then
+#            in_services=true
+#          elif [[ "$line" =~ ^[a-zA-Z0-9] ]]; then
+#            in_services=false
+#            in_ports=false
+#          fi
+#
+#          if $in_services && [[ "$line" =~ ^[[:space:]]+ports: ]]; then
+#            in_ports=true
+#            echo "# $line" >> "$OUTPUT_FILE"
+#          elif $in_ports && [[ "$line" =~ ^[[:space:]]+- ]]; then
+#            echo "# $line" >> "$OUTPUT_FILE"
+#          else
+#            in_ports=false
+#            echo "$line" >> "$OUTPUT_FILE"
+#          fi
+#        done < "$INPUT_FILE"
+#
+#        echo "Generated OUTPUT FILE is: $OUTPUT_FILE"
+#        cat $OUTPUT_FILE
+#
+#    - id: compose-override
+#      name: create docker override compose
+#      shell: bash
+#      run: |
+#        echo ""
+#        echo "========== GENERATE DOCKER COMPOSE (OVERRIDE) =========="
+#        echo ""
+#
+#        INPUT_FILE="docker-compose.yml"
+#        OUTPUT_FILE="docker-compose.override.yml"
+#
+#        in_services_block=false
+#        echo "networks:" >> "$OUTPUT_FILE"
+#        echo "  ${{ steps.setup.outputs.network }}:" >> "$OUTPUT_FILE"
+#        echo "    external: true" >> "$OUTPUT_FILE"
+#        echo "services:" >> "$OUTPUT_FILE"
+#        while IFS= read -r line; do
+#          # Detect start of services block
+#          if [[ "$line" =~ ^services: ]]; then
+#            in_services_block=true
+#            continue
+#          fi
+#
+#          # Stop when hitting another top-level key
+#          if $in_services_block && [[ "$line" =~ ^[a-zA-Z0-9_-]+: ]]; then
+#            break
+#          fi
+#
+#          # Match lines indented exactly 2 spaces (first-level keys under services)
+#          if $in_services_block && [[ "$line" =~ ^[[:space:]]{2}([a-zA-Z0-9_-]+): ]]; then
+#            service="${BASH_REMATCH[1]}"
+#            {
+#              if [ "$service" == "${{ steps.setup.outputs.host }}" ]; then
+#                echo "  $service:"
+#                echo "    networks:"
+#                echo "      - default"
+#                echo "      - ${{ steps.setup.outputs.network }}"
+#                echo "    labels:"
+#                echo "      - \"traefik.enable=true\""
+#                echo "      - \"traefik.http.routers.$service.rule=Host(\`${{ steps.setup.outputs.domain }}\`)\""
+#                echo "      - \"traefik.http.routers.$service.entrypoints=websecure\""
+#                echo "      - \"traefik.http.routers.$service.tls.certresolver=letsencrypt\""
+#                echo "      - \"traefik.http.services.$service.loadbalancer.server.port=${{ steps.setup.outputs.port }}\""
+#                echo "      - \"traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https\""
+#                echo "      - \"traefik.http.routers.$service.middlewares=redirect-to-https\""
+#                echo "      - \"traefik.docker.network=${{ steps.setup.outputs.network }}\""
+#              else
+#                echo "  $service:"
+#                echo "    networks:"
+#                echo "      - default"
+#              fi
+#            } >> "$OUTPUT_FILE"
+#          fi
+#        done < "$INPUT_FILE"
+#
+#        echo "Generated OUTPUT FILE is: $OUTPUT_FILE"
+#        cat $OUTPUT_FILE
 #
 #    - id: copy
 #      name: copy files fia ssh
 #      shell: bash
+#      env:
+#        TARGET_PATH: /data/compose/${{ github.event.repository.name }}
 #      run: |
-#        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa -l ${{ inputs.ssh_private_user }} -p ${{ inputs.ssh_private_port }} ${{ inputs.ssh_private_host }} "mkdir -p /data/compose/cover/"
-#        rsync -avz --exclude './src' -e "ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa -p ${{ inputs.ssh_private_port }}" ./ ${{ inputs.ssh_private_user }}@${{ inputs.ssh_private_host }}:/data/compose/cover/
+#        echo ""
+#        echo "========== COPY REPOSITORY TO REMOTE =========="
+#        echo ""
+#
+#        echo "${{ inputs.delete_before_deploy }}" | tr -s '[:space:]' '\n' | while read -r folder; do
+#          # Skip empty lines
+#          [[ -z "$folder" ]] && continue
+#
+#          if [ -d "$folder" ] || [ -f "$folder" ]; then
+#            echo "Deleting folder $folder"
+#            rm -rf "$folder"
+#          else
+#            echo "Skipping $folder (not found)"
+#          fi
+#        done
+#
+#        ssh -o StrictHostKeyChecking=no sshserver << EOF
+#          cd ${{ env.TARGET_PATH }}
+#          echo "STOP docker containers before copy"
+#          docker compose stop
+#          cd /
+#          rm -rf ${{ env.TARGET_PATH }}
+#          mkdir -p ${{ env.TARGET_PATH }}
+#        EOF
+#        scp -o StrictHostKeyChecking=no -r ./ sshserver:${{ env.TARGET_PATH }}/
+#
+#    - id: network
+#      name: init docker network
+#      shell: bash
+#      run: |
+#        echo ""
+#        echo "========== CREATE DOCKER NETWORK =========="
+#        echo ""
+#
+#        NETWORK_NAME=${{ steps.setup.outputs.network }}
+#        DOMAIN_NAME=${{ steps.setup.outputs.domain }}
+#
+#        ssh -o StrictHostKeyChecking=no sshserver << EOF
+#          # Check if the Docker network exists; if not, create it
+#          if ! docker network inspect "$NETWORK_NAME" >/dev/null 2>&1; then
+#            docker network create "$NETWORK_NAME"
+#            echo "CREATED: Docker network - $NETWORK_NAME"
+#          else
+#            echo "EXIST: Docker network present - $NETWORK_NAME"
+#          fi
+#
+#          # Connect all containers with 'traefik' image to created network
+#          for container in \$(docker ps --format '{{.ID}}'); do
+#            IMAGE=\$(docker inspect -f '{{.Config.Image}}' "\$container")
+#            if echo "\$IMAGE" | grep -qi 'traefik'; then
+#              if ! docker inspect -f '{{json .NetworkSettings.Networks}}' "\$container" | grep -q "$NETWORK_NAME"; then
+#                docker network connect "$NETWORK_NAME" "\$container"
+#                echo "CONNECTED: container to -> $NETWORK_NAME : \$(docker inspect -f '{{.Name}}' \$container)"
+#              else
+#                echo "EXISTED: already in -> $NETWORK_NAME : \$(docker inspect -f '{{.Name}}' \$container)"
+#              fi
+#            fi
+#          done
+#        EOF
+#
+#    - id: execute
+#      name: execute setup
+#      shell: bash
+#      env:
+#        TARGET_PATH: /data/compose/${{ github.event.repository.name }}
+#      run: |
+#        echo ""
+#        echo "========== EXECUTE SETUP =========="
+#        echo ""
+#
+#        ssh -o StrictHostKeyChecking=no sshserver << EOF
+#          cd ${{ env.TARGET_PATH }}
+#          echo "START docker containers: docker compose -f docker-compose.remote.yml -f docker-compose.override.yml up -d"
+#          docker compose -f docker-compose.remote.yml -f docker-compose.override.yml up -d
+#          echo "CLEAN: delete unused images"
+#          docker image prune -a -f
+#        EOF

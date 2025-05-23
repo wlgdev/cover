@@ -17,6 +17,5 @@ jobs:
           delete_before_deploy:
             ./src
             ./test
-          domain_name: cover
-          target_service: nginx
-          target_port: 80
+          target:
+            cover:nginx:80
