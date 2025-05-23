@@ -34,6 +34,11 @@ inputs:
     required: false
     description: 'default: wlg.tv'
     default: "wlg.tv"
+
+  compose_file:
+    required: false
+    description: "default: ./docker-compose.yml - path to compose file"
+    default: "./docker-compose.yml"
   env:
     required: false
     description: 'list of env variables'
@@ -52,6 +57,12 @@ runs:
         echo ""
         echo "========== VALIDATE TARGETS =========="
         echo ""
+
+        INPUT_FILE=${{inputs.compose_file}}
+        if [[ "$INPUT_FILE" == *"../"* ]]; then
+          echo "::error::ERROR: composite path should not contain '../'"
+          exit 1
+        fi
 
         echo "${{ inputs.target }}" | tr -s '[:space:]' '\n' | while read -r target; do
           # Skip empty lines
@@ -155,7 +166,7 @@ runs:
         echo "========== GENERATE DOCKER COMPOSE (DEPLOY) =========="
         echo ""
         
-        INPUT_FILE="docker-compose.yml"
+        INPUT_FILE=${{inputs.compose_file}}
         OUTPUT_FILE="docker-compose.deploy.yml"
 
         in_services_block=false
@@ -341,10 +352,10 @@ runs:
 
         ssh -o StrictHostKeyChecking=no sshserver << EOF
           cd ${{ env.TARGET_PATH }}
-        
+
           INPUT_PROPERTIES='${{ inputs.env }}'
           ENV_PROPERTIES=\$(echo "\$INPUT_PROPERTIES" | tr -s '[:space:]' '\n')
-        
+
           (
             while read -r property; do
               [[ -z "\$property" ]] && continue
@@ -353,10 +364,10 @@ runs:
             done <<< "\$ENV_PROPERTIES"
             docker compose -f docker-compose.deploy.yml -f docker-compose.override.yml up -d
           )
-          
+
           unset INPUT_PROPERTIES
           unset ENV_PROPERTIES
-        
+
           echo "CLEAN: delete unused images"
           docker image prune -a -f
           docker builder prune -a -f
