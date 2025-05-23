@@ -345,7 +345,6 @@ runs:
             while read -r property; do
               [[ -z "$property" ]] && continue
               IFS='=' read -r key value <<< "$property"
-              echo "$key=$value"
               export "$key=$value"
             done <<< "$PROPERTIES"
             docker compose -f docker-compose.deploy.yml -f docker-compose.override.yml up -d
