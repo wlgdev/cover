@@ -354,14 +354,18 @@ runs:
           cd ${{ env.TARGET_PATH }}
 
           INPUT_PROPERTIES='${{ inputs.env }}'
-          ENV_PROPERTIES=\$(echo "\$INPUT_PROPERTIES" | tr -s '[:space:]' '\n')
 
           (
-            while read -r property; do
-              [[ -z "\$property" ]] && continue
-              IFS='=' read -r key value <<< "\$property"
-              export "\$key=\$value"
-            done <<< "\$ENV_PROPERTIES"
+            while IFS= read -r line; do
+              [[ -z "\$line" ]] && continue
+              eval "tokens=(\$line)"
+        
+              for token in "${tokens[@]}"; do
+                IFS='=' read -r key value <<< "\$token"
+                echo "TEST : \$key=\$value"
+                export "\$key=\$value"
+              done
+            done <<< "\$INPUT_PROPERTIES"
             docker compose -f docker-compose.deploy.yml -f docker-compose.override.yml up -d
           )
 
