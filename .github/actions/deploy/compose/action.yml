@@ -341,21 +341,19 @@ runs:
         ssh -o StrictHostKeyChecking=no sshserver << EOF
           cd ${{ env.TARGET_PATH }}
           echo "START docker containers: docker compose -f docker-compose.deploy.yml -f docker-compose.override.yml up -d"
-          echo "DEBUG1: $ENV_PROPERTIES"
-          TARGETS=$(echo "${{ inputs.env }}" | tr -s '[:space:]' '\n')
+        
           echo "TARGETES: $TARGETS"
           while read -r target; do
             echo "targets: $target"
-          done <<< "$TARGETS"
+          done <<< "${{ inputs.env }}"
           (
-            echo "DEBUG1.5: $ENV_PROPERTIES"
-            PROPERTIES=$(echo "$ENV_PROPERTIES" | tr -s '[:space:]' '\n')
-            echo "DEBUG2: $PROPERTIES"
+            echo "DEBUG2: $ENV_PROPERTIES"
             while read -r property; do
               [[ -z "$property" ]] && continue
               IFS='=' read -r key value <<< "$property"
+              echo "$key=$value"
               export "$key=$value"
-            done <<< "$PROPERTIES"
+            done <<< "$ENV_PROPERTIES"
             docker compose -f docker-compose.deploy.yml -f docker-compose.override.yml up -d
           )
           unset ENV_PROPERTIES
