@@ -42,7 +42,7 @@ inputs:
   env:
     required: false
     description: 'list of env variables'
-  join_container:
+  joiner_container:
     required: false
     description: 'join containers to same network with name'
 
@@ -345,7 +345,7 @@ runs:
           done
         
           # Connect specified containers by name to same created network
-          echo "${{ inputs.join_container }}" | tr -s '[:space:]' '\n' | while read -r joiners; do
+          echo "${{ inputs.join_container }}" | tr -s '[:space:]' '\n' | while read -r joiner; do
             [[ -z "\$joiner" ]] && continue
             echo "TEST JOINER: \$joiner"
             for container in \$(docker ps --format '{{.Names}}' | grep "\$joiner"); do
