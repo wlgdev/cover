@@ -347,9 +347,9 @@ runs:
           # Connect specified containers by name to same created network
           echo "${{ inputs.join_container }}" | tr -s '[:space:]' '\n' | while read -r joiners; do
             [[ -z "\$joiner" ]] && continue
-            for container in \$(docker ps --format {{.Names}} | grep \$joiner)
-              ID=\$(docker inspect --format {{.ID}} \$container)
-              if ! docker inspect if '{{json .NetworkSettings.Networks}}' "\$ID" | grep -q "$NETWORK_NAME"; then
+            for container in \$(docker ps --format '{{.Names}}' | grep "\$joiner")
+              ID=\$(docker inspect --format '{{.ID}}' "\$container")
+              if ! docker inspect -f '{{json .NetworkSettings.Networks}}' "\$ID" | grep -q "$NETWORK_NAME"; then
                 docker network connect "$NETWORK_NAME" "\$ID"
                 echo "JOINER(\$joiner) CONNECTED: container to -> $NETWORK_NAME : \$container"
               else
