@@ -42,6 +42,9 @@ inputs:
   env:
     required: false
     description: 'list of env variables'
+  join_container:
+    required: false
+    description: 'join containers to same network with name'
 
 # ----------------------------------------------------------------------
 
@@ -339,6 +342,12 @@ runs:
                 echo "EXISTED: already in -> $NETWORK_NAME : \$(docker inspect -f '{{.Name}}' \$container)"
               fi
             fi
+          done
+        
+          # Connect specified containers by name to same created network
+          echo "${{ inputs.join_container }}" | tr -s '[:space:]' '\n' | while read -r container; do
+            [[ -z "$container" ]] && continue
+            echo "ALSO: $container"
           done
         EOF
 

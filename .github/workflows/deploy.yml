@@ -23,3 +23,6 @@ jobs:
           env:
             FOO=BAR some="property value"
             KeY=VaLUe
+          join_container:
+            exampler
+            exampler
