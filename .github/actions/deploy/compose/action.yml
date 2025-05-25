@@ -345,7 +345,7 @@ runs:
           done
         
           # Connect specified containers by name to same created network
-          echo "${{ inputs.join_container }}" | tr -s '[:space:]' '\n' | while read -r joiner; do
+          echo "${{ inputs.joiner_container }}" | tr -s '[:space:]' '\n' | while read -r joiner; do
             [[ -z "\$joiner" ]] && continue
             echo "TEST JOINER: \$joiner"
             for container in \$(docker ps --format '{{.Names}}' | grep "\$joiner"); do
