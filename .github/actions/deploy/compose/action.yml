@@ -346,8 +346,8 @@ runs:
         
           # Connect specified containers by name to same created network
           echo "${{ inputs.join_container }}" | tr -s '[:space:]' '\n' | while read -r container; do
-            [[ -z "$container" ]] && continue
-            echo "ALSO: $container"
+            [[ -z "\$container" ]] && continue
+            echo "ALSO: \$container"
           done
         EOF
 
