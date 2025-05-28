@@ -179,7 +179,7 @@ runs:
         in_services_block=false
         in_ports_block=false
         > "$OUTPUT_FILE"
-        while IFS= read -r line; do
+        while IFS= read -r line || [[ -n "$line" ]]; do
           if [[ "$line" =~ ^services: ]]; then
             in_services=true
           elif [[ "$line" =~ ^[a-zA-Z0-9] ]]; then
@@ -347,11 +347,8 @@ runs:
           # Connect specified containers by name to same created network
           echo "${{ inputs.joiner_container }}" | tr -s '[:space:]' '\n' | while read -r joiner; do
             [[ -z "\$joiner" ]] && continue
-            echo "TEST JOINER: \$joiner"
             for container in \$(docker ps --format '{{.Names}}' | grep "\$joiner"); do
-              echo "TEST CONTAINER: \$container"
               ID=\$(docker inspect -f '{{.Id}}' "\$container")
-              echo "TEST ID: \$ID"
               if ! docker inspect -f '{{json .NetworkSettings.Networks}}' "\$ID" | grep -q "$NETWORK_NAME"; then
                 docker network connect "$NETWORK_NAME" "\$ID"
                 echo "JOINER(\$joiner) CONNECTED: container to -> $NETWORK_NAME : \$container"
