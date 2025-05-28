@@ -1,5 +1,6 @@
 ./.github/workflows/secrets-update.yml
 ./.github/workflows/repository-init.yml
-./.gitignore
+./docs/description.webp
 ./template
+./.gitignore
 ./README.md
