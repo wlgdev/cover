@@ -308,7 +308,7 @@ runs:
         ssh -o StrictHostKeyChecking=no sshserver << EOF
           cd ${{ env.TARGET_PATH }}
           echo "STOP docker containers before copy"
-          docker compose stop
+          docker compose down
           cd /
           rm -rf ${{ env.TARGET_PATH }}
           mkdir -p ${{ env.TARGET_PATH }}
