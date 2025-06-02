@@ -334,18 +334,37 @@ runs:
             echo "EXIST: Docker network present - $NETWORK_NAME"
           fi
         
-          # Connect all containers with 'traefik' image to created network
-          for container in \$(docker ps --format '{{.ID}}'); do
-            IMAGE=\$(docker inspect -f '{{.Config.Image}}' "\$container")
-            if echo "\$IMAGE" | grep -qi 'traefik'; then
-              if ! docker inspect -f '{{json .NetworkSettings.Networks}}' "\$container" | grep -q "$NETWORK_NAME"; then
-                docker network connect "$NETWORK_NAME" "\$container"
-                echo "CONNECTED: container to -> $NETWORK_NAME : \$(docker inspect -f '{{.Name}}' \$container)"
-              else
-                echo "EXISTED: already in -> $NETWORK_NAME : \$(docker inspect -f '{{.Name}}' \$container)"
-              fi
+          # Connect main traefik (hardcoded - coolify-proxy) to created network
+          for container_name in \$(docker ps --format '{{.Names}}' | grep "coolify-proxy"); do
+            container_id=\$(docker inspect -f '{{.Id}}' "\$container_name")
+            if ! docker inspect -f '{{json .NetworkSettings.Networks}}' "\$container_id" | grep -q "$NETWORK_NAME"; then
+              docker network connect "$NETWORK_NAME" "\$container_id"
+              echo "TRAEFIK CONNECTED: container to -> $NETWORK_NAME : \$container_name"
+            else
+              echo "TRAEFIK EXISTED: already in -> $NETWORK_NAME : \$container_name"
             fi
           done
+          # Connect all containers with 'traefik' image to created network
+          #for container_id in \$(docker ps --format '{{.ID}}'); do
+          #  container_image=\$(docker inspect -f '{{.Config.Image}}' "\$container_id")
+          #  if echo "\$container_image" | grep -qi 'traefik'; then
+          #    # Check if container exposes any ports publicly (host bindings)
+          #    container_ports=\$(docker inspect -f '{{json .HostConfig.PortBindings}}' "\$container_id")
+          # 
+          #    # The port bindings JSON will be null if no bindings; or a JSON object if bindings exist
+          #    if [ "\$container_ports" != "null" ] && [ "\$container_ports" != "{}" ]; then
+          #      # Only connect if not already connected
+          #      if ! docker inspect -f '{{json .NetworkSettings.Networks}}' "\$container_id" | grep -q "$NETWORK_NAME"; then
+          #        docker network connect "$NETWORK_NAME" "\$container_id"
+          #        echo "TRAEFIK CONNECTED: container to -> $NETWORK_NAME : \$(docker inspect -f '{{.Name}}' \$container_id)"
+          #      else
+          #        echo "TRAEFIK EXISTED: already in -> $NETWORK_NAME : \$(docker inspect -f '{{.Name}}' \$container_id)"
+          #      fi
+          #    else
+          #      echo "TRAEFIK SKIPPED: no public port bindings -> \$(docker inspect -f '{{.Name}}' \$container_id)"
+          #    fi
+          #  fi
+          #done
         
           # Connect specified containers by name to same created network
           echo "${{ inputs.joiner_container }}" | tr -s '[:space:]' '\n' | while read -r joiner; do
