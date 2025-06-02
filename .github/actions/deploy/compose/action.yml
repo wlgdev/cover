@@ -369,7 +369,7 @@ runs:
         echo "========== EXECUTE SETUP =========="
         echo ""
 
-        echo "START docker containers: docker compose -f docker-compose.deploy.yml -f docker-compose.override.yml up -d"
+        echo "START docker containers: docker compose -f docker-compose.deploy.yml -f docker-compose.override.yml up -d --remove-orphans"
 
         ssh -o StrictHostKeyChecking=no sshserver << EOF
           cd ${{ env.TARGET_PATH }}
@@ -390,7 +390,7 @@ runs:
                 export "\$key=\$value"
               done
             done <<< "\$INPUT_PROPERTIES"
-            docker compose -f docker-compose.deploy.yml -f docker-compose.override.yml up -d
+            docker compose -f docker-compose.deploy.yml -f docker-compose.override.yml up -d --remove-orphans
           )
 
           unset INPUT_PROPERTIES
