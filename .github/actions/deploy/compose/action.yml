@@ -335,7 +335,7 @@ runs:
           fi
         
           # Connect main traefik (hardcoded - coolify-proxy) to created network
-          for container_name in \$(docker ps --format '{{.Names}}' | grep "coolify-proxy"); do
+          for container_name in \$(docker ps --format '{{.Names}}' | grep "^coolify-proxy$"); do
             container_id=\$(docker inspect -f '{{.Id}}' "\$container_name")
             if ! docker inspect -f '{{json .NetworkSettings.Networks}}' "\$container_id" | grep -q "$NETWORK_NAME"; then
               docker network connect "$NETWORK_NAME" "\$container_id"
@@ -369,7 +369,7 @@ runs:
           # Connect specified containers by name to same created network
           echo "${{ inputs.joiner_container }}" | tr -s '[:space:]' '\n' | while read -r joiner; do
             [[ -z "\$joiner" ]] && continue
-            for container in \$(docker ps --format '{{.Names}}' | grep "\$joiner"); do
+            for container in \$(docker ps --format '{{.Names}}' | grep "^\${joiner}$"); do
               ID=\$(docker inspect -f '{{.Id}}' "\$container")
               if ! docker inspect -f '{{json .NetworkSettings.Networks}}' "\$ID" | grep -q "$NETWORK_NAME"; then
                 docker network connect "$NETWORK_NAME" "\$ID"

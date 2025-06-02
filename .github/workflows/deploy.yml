@@ -23,3 +23,5 @@ jobs:
           env:
             FOO=BAR some="property value"
             KeY=VaLUe
+          joiner_container:
+            coolify-proxy
