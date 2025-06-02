@@ -179,7 +179,7 @@ runs:
         in_services_block=false
         in_ports_block=false
         > "$OUTPUT_FILE"
-        while IFS= read -r line; do
+        while IFS= read -r line || [[ -n "$line" ]]; do
           if [[ "$line" =~ ^services: ]]; then
             in_services=true
           elif [[ "$line" =~ ^[a-zA-Z0-9] ]]; then
@@ -242,8 +242,10 @@ runs:
               IFS=':' read -r TARGET_DOMAIN TARGET_SERVICE TARGET_PORT <<< "$target"
 
               # SET TARGET DOMAIN NAME
+              TARGET_ROUTE=${{ github.event.repository.name }}-$actual_service
               if [ "${{ env.BRANCH_NAME }}" != "master" ]; then
                 TARGET_DOMAIN=$TARGET_DOMAIN.dev
+                TARGET_ROUTE=$TARGET_ROUTE-dev
               fi
               TARGET_DOMAIN=$TARGET_DOMAIN.${{ inputs.domain }}
 
@@ -256,12 +258,13 @@ runs:
                   echo "      - ${{ steps.setup.outputs.network }}"
                   echo "    labels:"
                   echo "      - \"traefik.enable=true\""
-                  echo "      - \"traefik.http.routers.$actual_service.rule=Host(\`$TARGET_DOMAIN\`)\""
-                  echo "      - \"traefik.http.routers.$actual_service.entrypoints=websecure\""
-                  echo "      - \"traefik.http.routers.$actual_service.tls.certresolver=letsencrypt\""
-                  echo "      - \"traefik.http.services.$actual_service.loadbalancer.server.port=$TARGET_PORT\""
+                  echo "      - \"traefik.http.services.$TARGET_ROUTE.loadbalancer.server.port=$TARGET_PORT\""
+                  echo "      - \"traefik.http.routers.$TARGET_ROUTE.rule=Host(\`$TARGET_DOMAIN\`)\""
+                  echo "      - \"traefik.http.routers.$TARGET_ROUTE.tls=true\""
+                  echo "      - \"traefik.http.routers.$TARGET_ROUTE.tls.certresolver=letsencrypt\""
+                  echo "      - \"traefik.http.routers.$TARGET_ROUTE.entrypoints=websecure\""
+                  echo "      - \"traefik.http.routers.$TARGET_ROUTE.middlewares=redirect-to-https\""
                   echo "      - \"traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https\""
-                  echo "      - \"traefik.http.routers.$actual_service.middlewares=redirect-to-https\""
                   echo "      - \"traefik.docker.network=${{ steps.setup.outputs.network }}\""
                 } >> "$OUTPUT_FILE"
                 break
@@ -284,7 +287,7 @@ runs:
       name: copy files fia ssh
       shell: bash
       env:
-        TARGET_PATH: /data/compose/${{ github.event.repository.name }}
+        TARGET_PATH: /data/compose/${{ github.event.repository.name }}${{ github.ref_name != 'master' && '-dev' || '' }}
       run: |
         echo ""
         echo "========== COPY REPOSITORY TO REMOTE =========="
@@ -347,11 +350,8 @@ runs:
           # Connect specified containers by name to same created network
           echo "${{ inputs.joiner_container }}" | tr -s '[:space:]' '\n' | while read -r joiner; do
             [[ -z "\$joiner" ]] && continue
-            echo "TEST JOINER: \$joiner"
             for container in \$(docker ps --format '{{.Names}}' | grep "\$joiner"); do
-              echo "TEST CONTAINER: \$container"
               ID=\$(docker inspect -f '{{.Id}}' "\$container")
-              echo "TEST ID: \$ID"
               if ! docker inspect -f '{{json .NetworkSettings.Networks}}' "\$ID" | grep -q "$NETWORK_NAME"; then
                 docker network connect "$NETWORK_NAME" "\$ID"
                 echo "JOINER(\$joiner) CONNECTED: container to -> $NETWORK_NAME : \$container"
@@ -366,13 +366,13 @@ runs:
       name: execute setup
       shell: bash
       env:
-        TARGET_PATH: /data/compose/${{ github.event.repository.name }}
+        TARGET_PATH: /data/compose/${{ github.event.repository.name }}${{ github.ref_name != 'master' && '-dev' || '' }}
       run: |
         echo ""
         echo "========== EXECUTE SETUP =========="
         echo ""
 
-        echo "START docker containers: docker compose -f docker-compose.deploy.yml -f docker-compose.override.yml up -d"
+        echo "START docker containers: docker compose -f docker-compose.deploy.yml -f docker-compose.override.yml up -d --remove-orphans"
 
         ssh -o StrictHostKeyChecking=no sshserver << EOF
           cd ${{ env.TARGET_PATH }}
@@ -393,7 +393,7 @@ runs:
                 export "\$key=\$value"
               done
             done <<< "\$INPUT_PROPERTIES"
-            docker compose -f docker-compose.deploy.yml -f docker-compose.override.yml up -d
+            docker compose -f docker-compose.deploy.yml -f docker-compose.override.yml up -d --remove-orphans
           )
 
           unset INPUT_PROPERTIES
