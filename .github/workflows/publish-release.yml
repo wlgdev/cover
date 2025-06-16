@@ -83,7 +83,7 @@ jobs:
             ./test
           compose_file: './docker-compose.remote.yml'
           target:
-            ${{ github.event.repository.name }}:nginx:80
+            ${{ github.event.repository.name }}:cover:80
           env:
             SERVICE_IMAGE_NAME=ghcr.io/${{ github.repository_owner }}/${{ needs.publish-service.outputs.image-name }}
             SERVICE_IMAGE_DIGEST=${{ needs.publish-service.outputs.image-digest }}
