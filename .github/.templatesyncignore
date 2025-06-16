@@ -1,5 +1,5 @@
-./.github/workflows/secrets-update.yml
 ./.github/workflows/repository-init.yml
+./.github/workflows/repository-update.yml
 ./docs/description.webp
 ./template
 ./.gitignore

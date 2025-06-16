@@ -1,24 +1,15 @@
 services:
-  nginx:
-    build:
-      context: ./
-      dockerfile: Dockerfile
+  cover:
+    image: ${SERVICE_IMAGE_NAME}${SERVICE_IMAGE_TAG:+:${SERVICE_IMAGE_TAG}}${SERVICE_IMAGE_DIGEST:+@${SERVICE_IMAGE_DIGEST}}
     ports:
       - "80:80"
     restart: unless-stopped
     environment:
       - TZ=Europe/Moscow
       - FOO=${FOO}
-  service:
-    image: nginx:latest
-    ports:
-      - "81:80"
-    restart: unless-stopped
-    environment:
-      - TZ=Europe/Moscow
 
 networks:
-  nginx:
+  cover:
     driver: bridge
     ipam:
       driver: default
