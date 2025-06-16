@@ -79,7 +79,7 @@ jobs:
           ssh_private_port: ${{ secrets.WLGDEV_SSH_PRIVATE_PORT }}
           ssh_private_user: ${{ secrets.WLGDEV_SSH_PRIVATE_USER }}
           delete_before_deploy:
-            ./docs
+            ./src
             ./test
           compose_file: './docker-compose.remote.yml'
           target:
