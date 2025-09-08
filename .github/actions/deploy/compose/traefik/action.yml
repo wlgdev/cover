@@ -290,14 +290,14 @@ runs:
               fi
               TARGET_DOMAIN=$TARGET_DOMAIN.${{ inputs.domain }}
               TARGET_ROUTE=$TARGET_ROUTE-$actual_service
-        
-              echo "## 📃 SUMMARY: ${actual_service}" >> $GITHUB_STEP_SUMMARY
-              echo "- 🚀 URL    : ${TARGET_DOMAIN}" >> $GITHUB_STEP_SUMMARY
-              echo "- 🚀 Route  : ${TARGET_ROUTE}" >> $GITHUB_STEP_SUMMARY
-              echo "- 🛜 Network: ${{ steps.setup.outputs.network }} " >> $GITHUB_STEP_SUMMARY
 
               if [[ "$actual_service" == "$TARGET_SERVICE" ]]; then
                 target_found=true
+                echo "## 📃 SUMMARY: ${actual_service}" >> $GITHUB_STEP_SUMMARY
+                echo "-  🚀 URL    : ${TARGET_DOMAIN}"  >> $GITHUB_STEP_SUMMARY
+                echo "-  🚀 Route  : ${TARGET_ROUTE}"   >> $GITHUB_STEP_SUMMARY
+                echo "-  🛜 Network: ${{ steps.setup.outputs.network }} " >> $GITHUB_STEP_SUMMARY
+        
                 {
                   echo "  $actual_service:"
                   echo "    networks:"
