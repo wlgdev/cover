@@ -31,7 +31,8 @@
     "typescript": "^5.5.3",
     "vite": "^5.4.1",
     "vite-plugin-global-const": "^0.0.6",
-    "vite-plugin-singlefile": "^2.0.2"
+    "vite-plugin-singlefile": "^2.0.2",
+    "@shevernitskiy/scraperator": "jsr:^0.0.125"
   },
   "dependencies": {
     "bits-ui": "^0.21.16",
