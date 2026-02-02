@@ -14,6 +14,7 @@
   },
   "devDependencies": {
     "@melt-ui/svelte": "^0.83.0",
+    "@shevernitskiy/scraperator": "jsr:^0.0.125",
     "@sveltejs/vite-plugin-svelte": "^4.0.0-next.6",
     "@tsconfig/svelte": "^5.0.4",
     "@types/color-thief-node": "^1.0.4",
@@ -31,8 +32,8 @@
     "typescript": "^5.5.3",
     "vite": "^5.4.1",
     "vite-plugin-global-const": "^0.0.6",
-    "vite-plugin-singlefile": "^2.0.2",
-    "@shevernitskiy/scraperator": "jsr:^0.0.125"
+    "vite-plugin-node-polyfills": "^0.25.0",
+    "vite-plugin-singlefile": "^2.0.2"
   },
   "dependencies": {
     "bits-ui": "^0.21.16",
