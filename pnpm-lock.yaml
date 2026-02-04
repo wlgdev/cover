@@ -19,8 +19,8 @@ importers:
         specifier: ^0.83.0
         version: 0.83.0(svelte@5.49.1)
       '@shevernitskiy/scraperator':
-        specifier: jsr:^0.0.125
-        version: '@jsr/shevernitskiy__scraperator@0.0.125'
+        specifier: jsr:^0.0.127
+        version: '@jsr/shevernitskiy__scraperator@0.0.127'
       '@sveltejs/vite-plugin-svelte':
         specifier: ^4.0.0-next.6
         version: 4.0.4(svelte@5.49.1)(vite@5.4.21)
@@ -251,8 +251,8 @@ packages:
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
 
-  '@jsr/shevernitskiy__scraperator@0.0.125':
-    resolution: {integrity: sha512-foaLhHMlJr4pqKj2mLX+YcODXktVBvN387sUaYX69GMZtCV23d1fZADZltNymUK3V6bPpbLJrNhrrihnjnaIuQ==, tarball: https://npm.jsr.io/~/11/@jsr/shevernitskiy__scraperator/0.0.125.tgz}
+  '@jsr/shevernitskiy__scraperator@0.0.127':
+    resolution: {integrity: sha512-mP+DZUskNvCo6hwJmLRR7P/Koa1qe9dG5SMVPHDoJimh5Be5747M2JsSxiQEMdGZ5SCT0jreSnzVIdGcjd1DEg==, tarball: https://npm.jsr.io/~/11/@jsr/shevernitskiy__scraperator/0.0.127.tgz}
 
   '@mapbox/node-pre-gyp@1.0.11':
     resolution: {integrity: sha512-Yhlar6v9WQgUp/He7BdgzOz8lqMQ8sU+jkCq7Wx8Myc5YFJLbEe7lgui/V7G1qB1DJykHSGwreceSaD60Y0PUQ==}
@@ -1559,7 +1559,7 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
-  '@jsr/shevernitskiy__scraperator@0.0.125': {}
+  '@jsr/shevernitskiy__scraperator@0.0.127': {}
 
   '@mapbox/node-pre-gyp@1.0.11':
     dependencies:
