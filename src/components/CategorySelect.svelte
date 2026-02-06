@@ -85,6 +85,11 @@
     });
   }
 
+  export function addManualCategory(src: string, name: string = "manual") {
+    if (!src) return;
+    addCategory(name, src);
+  }
+
   function removeCategory(id: string) {
     selected = selected.filter((category) => category.id !== Number(id));
     categories.set({ ...$categories, src: selected.map((category) => category.src) });

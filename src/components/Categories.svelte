@@ -6,6 +6,7 @@
   import InputNumber from "./InputNumber.svelte";
   import InputColor from "./InputColor.svelte";
   import CategorySelect from "./CategorySelect.svelte";
+  import InputFile from "./InputFile.svelte";
   import { JUST_CHATTING } from "../assets/just-chating";
 
   type Props = {
@@ -13,11 +14,21 @@
   };
 
   let { categories }: Props = $props();
+
+  const selected = [{ name: "Just Chatting", src: JUST_CHATTING, id: 0 }];
+  let category_select: { addManualCategory: (src: string, name?: string) => void } | null = null;
+
+  function onManualCategoryInput(src: string) {
+    category_select?.addManualCategory(src, "manual");
+  }
 </script>
 
 <Section title="Категории">
-  <Row style="display: block">
-    <CategorySelect {categories} selected={[{ name: "Just Chatting", src: JUST_CHATTING, id: 0 }]} />
+  <Row style="align-items: flex-start;">
+    <div class="category-select">
+      <CategorySelect bind:this={category_select} {categories} selected={selected} />
+    </div>
+    <InputFile onload={onManualCategoryInput} accept="image/*" tooltip="загрузить" />
   </Row>
   <Row>
     <InputNumber label="X" bind:value={$categories.x} />
@@ -33,3 +44,10 @@
     <InputColor bind:hex={$categories.shadow.color} />
   </Row>
 </Section>
+
+<style>
+  .category-select {
+    flex: 1;
+    min-width: 0;
+  }
+</style>
