@@ -78,7 +78,11 @@
 
   function addCategory(name: string, src: string) {
     selected.push({ name, src, id: ++cur_index });
-    categories.set({ ...$categories, src: selected.map((category) => category.src) });
+    categories.set({
+      ...$categories,
+      src: selected.map((category) => category.src),
+      names: selected.map((category) => category.name),
+    });
     tags.update((tags) => {
       tags.push({ id: cur_index.toString(), value: name });
       return tags;
@@ -92,7 +96,11 @@
 
   function removeCategory(id: string) {
     selected = selected.filter((category) => category.id !== Number(id));
-    categories.set({ ...$categories, src: selected.map((category) => category.src) });
+    categories.set({
+      ...$categories,
+      src: selected.map((category) => category.src),
+      names: selected.map((category) => category.name),
+    });
   }
 
   function onFocusOut() {

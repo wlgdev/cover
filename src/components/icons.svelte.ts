@@ -5,3 +5,6 @@ export { default as KeepAspect } from "lucide-svelte/icons/minimize";
 export { default as Youtube } from "lucide-svelte/icons/youtube";
 export { default as Twitch } from "lucide-svelte/icons/twitch";
 export { default as Telegram } from "lucide-svelte/icons/send";
+export { default as Save } from "lucide-svelte/icons/save";
+export { default as FolderOpen } from "lucide-svelte/icons/folder-open";
+export { default as Trash2 } from "lucide-svelte/icons/trash-2";

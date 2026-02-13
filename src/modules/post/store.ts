@@ -1,4 +1,4 @@
-import { derived, writable } from "svelte/store";
+import { derived, writable, get } from "svelte/store";
 import { BACKGROUND_POST } from "../../assets/background";
 import { LOGO_POST, LOGO_GAMERS_BASE, LOGO_BOOSTY } from "../../assets/logo";
 import type { DrawWebGLPostParams, DrawWebGLPost, TitleBadge } from "../../drawer/draw-post-webgl";
@@ -161,3 +161,75 @@ export const appstate = writable<AppState<DrawWebGLPost>>({
   custom_logo: LOGO_GAMERS_BASE.split(",")[0],
   app: undefined,
 });
+
+export type PostTemplateSnapshot = {
+  version: 1;
+  filter: Filters;
+  background: Background;
+  logo: Logo;
+  custom_logo: CustomLogo;
+  title_badge: TitleBadge;
+  app: {
+    background: string;
+    background_width: number;
+    background_height: number;
+    background_aspect: number;
+    logo: string;
+    custom_logo: string;
+  };
+};
+
+const POST_TEMPLATE_VERSION = 1;
+
+function safeClone<T>(value: T): T {
+  try {
+    return structuredClone(value);
+  } catch {
+    try {
+      return JSON.parse(JSON.stringify(value)) as T;
+    } catch {
+      return value;
+    }
+  }
+}
+
+export function createPostTemplateSnapshot(): PostTemplateSnapshot {
+  const app = get(appstate);
+  return {
+    version: POST_TEMPLATE_VERSION,
+    filter: safeClone(get(filter)),
+    background: safeClone(get(background)),
+    logo: safeClone(get(logo)),
+    custom_logo: safeClone(get(custom_logo)),
+    title_badge: safeClone(get(title_badge)),
+    app: {
+      background: app.background,
+      background_width: app.background_width,
+      background_height: app.background_height,
+      background_aspect: app.background_aspect,
+      logo: app.logo,
+      custom_logo: app.custom_logo ?? "",
+    },
+  };
+}
+
+export function applyPostTemplateSnapshot(snapshot: PostTemplateSnapshot) {
+  if (!snapshot || snapshot.version !== POST_TEMPLATE_VERSION) return;
+
+  filter.set(safeClone(snapshot.filter));
+  background.set(safeClone(snapshot.background));
+  logo.set(safeClone(snapshot.logo));
+  custom_logo.set(safeClone(snapshot.custom_logo));
+  title_badge.set(safeClone(snapshot.title_badge));
+
+  appstate.update((state) => ({
+    ...state,
+    background: snapshot.app?.background ?? state.background,
+    background_width: snapshot.app?.background_width ?? state.background_width,
+    background_height: snapshot.app?.background_height ?? state.background_height,
+    background_aspect: snapshot.app?.background_aspect ?? state.background_aspect,
+    logo: snapshot.app?.logo ?? state.logo,
+    custom_logo: snapshot.app?.custom_logo ?? state.custom_logo,
+    background_loading: false,
+  }));
+}

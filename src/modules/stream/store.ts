@@ -1,4 +1,4 @@
-import { derived, writable } from "svelte/store";
+import { derived, writable, get } from "svelte/store";
 import { BACKGROUND_STREAM } from "../../assets/background";
 import { LOGO_STREAM } from "../../assets/logo";
 import { JUST_CHATTING } from "../../assets/just-chating";
@@ -103,6 +103,7 @@ export const DEFAULTS_VIDEO_TITLE: Title = {
 
 export const DEFAULTS_VIDEO_CATEGORIES: Categories = {
   src: [JUST_CHATTING],
+  names: ["Just Chatting"],
   x: 452,
   y: 481,
   w: 128,
@@ -222,3 +223,81 @@ export const appstate = writable<AppState<DrawWebGLStream>>({
   logo: LOGO_STREAM.split(",")[0],
   app: undefined,
 });
+
+export type StreamTemplateSnapshot = {
+  version: 1;
+  filter: Filters;
+  background: Background;
+  logo: Logo;
+  title: Title;
+  categories: Categories;
+  stripe: Box;
+  roles: Badges;
+  time: Badges;
+  app: {
+    background: string;
+    background_width: number;
+    background_height: number;
+    background_aspect: number;
+    logo: string;
+  };
+};
+
+const STREAM_TEMPLATE_VERSION = 1;
+
+function safeClone<T>(value: T): T {
+  try {
+    return structuredClone(value);
+  } catch {
+    try {
+      return JSON.parse(JSON.stringify(value)) as T;
+    } catch {
+      return value;
+    }
+  }
+}
+
+export function createStreamTemplateSnapshot(): StreamTemplateSnapshot {
+  const app = get(appstate);
+  return {
+    version: STREAM_TEMPLATE_VERSION,
+    filter: safeClone(get(filter)),
+    background: safeClone(get(background)),
+    logo: safeClone(get(logo)),
+    title: safeClone(get(title)),
+    categories: safeClone(get(categories)),
+    stripe: safeClone(get(stripe)),
+    roles: safeClone(get(roles)),
+    time: safeClone(get(time)),
+    app: {
+      background: app.background,
+      background_width: app.background_width,
+      background_height: app.background_height,
+      background_aspect: app.background_aspect,
+      logo: app.logo,
+    },
+  };
+}
+
+export function applyStreamTemplateSnapshot(snapshot: StreamTemplateSnapshot) {
+  if (!snapshot || snapshot.version !== STREAM_TEMPLATE_VERSION) return;
+
+  filter.set(safeClone(snapshot.filter));
+  background.set(safeClone(snapshot.background));
+  logo.set(safeClone(snapshot.logo));
+  title.set(safeClone(snapshot.title));
+  categories.set(safeClone(snapshot.categories));
+  stripe.set(safeClone(snapshot.stripe));
+  roles.set(safeClone(snapshot.roles));
+  time.set(safeClone(snapshot.time));
+
+  appstate.update((state) => ({
+    ...state,
+    background: snapshot.app?.background ?? state.background,
+    background_width: snapshot.app?.background_width ?? state.background_width,
+    background_height: snapshot.app?.background_height ?? state.background_height,
+    background_aspect: snapshot.app?.background_aspect ?? state.background_aspect,
+    logo: snapshot.app?.logo ?? state.logo,
+    background_loading: false,
+  }));
+}

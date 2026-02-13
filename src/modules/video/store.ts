@@ -1,4 +1,4 @@
-import { derived, writable } from "svelte/store";
+import { derived, writable, get } from "svelte/store";
 import { BACKGROUND_VIDEO } from "../../assets/background";
 import { LOGO_VIDEO } from "../../assets/logo";
 import { JUST_CHATTING } from "../../assets/just-chating";
@@ -120,6 +120,7 @@ export const DEFAULTS_VIDEO_DESCRIPTION: Description = {
 
 export const DEFAULTS_VIDEO_CATEGORIES: Categories = {
   src: [JUST_CHATTING],
+  names: ["Just Chatting"],
   x: 60,
   y: 432,
   w: 170,
@@ -166,3 +167,75 @@ export const appstate = writable<AppState<DrawWebGLVideo>>({
   logo: LOGO_VIDEO.split(",")[0],
   app: undefined,
 });
+
+export type VideoTemplateSnapshot = {
+  version: 1;
+  filter: Filters;
+  background: Background;
+  logo: Logo;
+  title: Title;
+  description: Description;
+  categories: Categories;
+  app: {
+    background: string;
+    background_width: number;
+    background_height: number;
+    background_aspect: number;
+    logo: string;
+  };
+};
+
+const VIDEO_TEMPLATE_VERSION = 1;
+
+function safeClone<T>(value: T): T {
+  try {
+    return structuredClone(value);
+  } catch {
+    try {
+      return JSON.parse(JSON.stringify(value)) as T;
+    } catch {
+      return value;
+    }
+  }
+}
+
+export function createVideoTemplateSnapshot(): VideoTemplateSnapshot {
+  const app = get(appstate);
+  return {
+    version: VIDEO_TEMPLATE_VERSION,
+    filter: safeClone(get(filter)),
+    background: safeClone(get(background)),
+    logo: safeClone(get(logo)),
+    title: safeClone(get(title)),
+    description: safeClone(get(description)),
+    categories: safeClone(get(categories)),
+    app: {
+      background: app.background,
+      background_width: app.background_width,
+      background_height: app.background_height,
+      background_aspect: app.background_aspect,
+      logo: app.logo,
+    },
+  };
+}
+
+export function applyVideoTemplateSnapshot(snapshot: VideoTemplateSnapshot) {
+  if (!snapshot || snapshot.version !== VIDEO_TEMPLATE_VERSION) return;
+
+  filter.set(safeClone(snapshot.filter));
+  background.set(safeClone(snapshot.background));
+  logo.set(safeClone(snapshot.logo));
+  title.set(safeClone(snapshot.title));
+  description.set(safeClone(snapshot.description));
+  categories.set(safeClone(snapshot.categories));
+
+  appstate.update((state) => ({
+    ...state,
+    background: snapshot.app?.background ?? state.background,
+    background_width: snapshot.app?.background_width ?? state.background_width,
+    background_height: snapshot.app?.background_height ?? state.background_height,
+    background_aspect: snapshot.app?.background_aspect ?? state.background_aspect,
+    logo: snapshot.app?.logo ?? state.logo,
+    background_loading: false,
+  }));
+}

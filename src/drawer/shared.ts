@@ -118,6 +118,7 @@ export type Title = {
 
 export type Categories = {
   src: string[];
+  names?: string[];
   x: number;
   y: number;
   w: number;
