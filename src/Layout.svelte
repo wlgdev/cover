@@ -8,20 +8,22 @@
   import Select from "./components/Select.svelte";
   import Modal from "./components/Modal.svelte";
   import { countAspectRatio } from "./common";
-  import { tick } from "svelte";
+  import { onMount, tick } from "svelte";
   import { Save, FolderOpen, Trash2 } from "./components/icons.svelte";
+
+  import {
+    deleteTemplate,
+    migrateLegacyTemplates,
+    readTemplates,
+    saveTemplate,
+    TEMPLATE_KINDS,
+    type TemplateKind,
+  } from "./common/template-storage";
 
   import Testing from "./components/Testing.svelte";
 
   let selector = $state(localStorage.getItem("template") ?? "youtube");
 
-  const TEMPLATE_KEYS = {
-    youtube: "wlgcover:video-templates",
-    twitch: "wlgcover:stream-templates",
-    post: "wlgcover:post-templates",
-  } as const;
-
-  type TemplateKind = keyof typeof TEMPLATE_KEYS;
   type AnyTemplateSnapshot =
     | Video.VideoTemplateSnapshot
     | Stream.StreamTemplateSnapshot
@@ -44,6 +46,10 @@
 
   let save_name_trimmed = $derived(save_name.trim());
   let save_exists = $derived(Boolean(save_name_trimmed && templates_cache[save_name_trimmed]));
+
+  onMount(() => {
+    void migrateLegacyTemplates();
+  });
 
   $effect(() => {
     if (modal === "save" && save_error && save_name_trimmed) {
@@ -173,23 +179,7 @@
   }
 
   function isTemplateKind(value: string): value is TemplateKind {
-    return Object.prototype.hasOwnProperty.call(TEMPLATE_KEYS, value);
-  }
-
-  function readTemplates(kind: TemplateKind): Record<string, AnyTemplateSnapshot> {
-    const raw = localStorage.getItem(TEMPLATE_KEYS[kind]);
-    if (!raw) return {};
-    try {
-      const data = JSON.parse(raw) as Record<string, AnyTemplateSnapshot>;
-      if (!data || typeof data !== "object") return {};
-      return data;
-    } catch {
-      return {};
-    }
-  }
-
-  function writeTemplates(kind: TemplateKind, templates: Record<string, AnyTemplateSnapshot>) {
-    localStorage.setItem(TEMPLATE_KEYS[kind], JSON.stringify(templates));
+    return (TEMPLATE_KINDS as readonly string[]).includes(value);
   }
 
   function createSnapshot(kind: TemplateKind): AnyTemplateSnapshot {
@@ -238,19 +228,21 @@
       });
   }
 
-  function openSaveModal() {
+  async function openSaveModal() {
     if (!isTemplateKind(selector)) return;
     modal_kind = selector;
-    templates_cache = readTemplates(modal_kind);
+    await migrateLegacyTemplates();
+    templates_cache = await readTemplates(modal_kind);
     save_name = "";
     save_error = "";
     modal = "save";
   }
 
-  function openLoadModal() {
+  async function openLoadModal() {
     if (!isTemplateKind(selector)) return;
     modal_kind = selector;
-    templates_cache = readTemplates(modal_kind);
+    await migrateLegacyTemplates();
+    templates_cache = await readTemplates(modal_kind);
     template_entries = buildTemplateEntries(modal_kind, templates_cache);
     if (template_entries.length === 0) {
       modal_info = "Нет сохраненных шаблонов.";
@@ -271,14 +263,12 @@
     modal_kind = null;
   }
 
-  function onSaveTemplateConfirm() {
+  async function onSaveTemplateConfirm() {
     if (!save_name_trimmed || !modal_kind) {
       save_error = "Введите название шаблона.";
       return;
     }
-    const templates = readTemplates(modal_kind);
-    templates[save_name_trimmed] = createSnapshot(modal_kind);
-    writeTemplates(modal_kind, templates);
+    await saveTemplate(modal_kind, save_name_trimmed, createSnapshot(modal_kind));
     modal = null;
     modal_kind = null;
   }
@@ -296,19 +286,18 @@
     modal_kind = null;
   }
 
-  function onDeleteTemplateConfirm() {
+  async function onDeleteTemplateConfirm() {
     if (!delete_name || !modal_kind) return;
-    const templates = readTemplates(modal_kind);
+    const templates = await readTemplates(modal_kind);
     if (!templates[delete_name]) {
       modal_info = "Шаблон не найден.";
       modal = "info";
       return;
     }
 
-    delete templates[delete_name];
-    writeTemplates(modal_kind, templates);
+    await deleteTemplate(modal_kind, delete_name);
 
-    templates_cache = templates;
+    templates_cache = await readTemplates(modal_kind);
     template_entries = buildTemplateEntries(modal_kind, templates_cache);
 
     if (template_entries.length === 0) {
