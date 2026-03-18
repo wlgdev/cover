@@ -123,6 +123,7 @@ export class DrawWebGLPost extends DrawWebGL<DrawWebGLPostParams> {
     }
 
     this.prev_filters = structuredClone(filter);
+    this.background_group.filterArea = undefined;
     this.background_group.filters = this.buildFilters(filter, this.backrgound);
   }
 

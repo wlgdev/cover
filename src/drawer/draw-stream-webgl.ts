@@ -137,6 +137,7 @@ export class DrawWebGLStream extends DrawWebGL<DrawWebGLStreamParams> {
       return;
     }
     this.prev_filters = structuredClone(filter);
+    this.background_group.filterArea = undefined;
     this.background_group.filters = this.buildFilters(filter, this.backrgound);
   }
 
