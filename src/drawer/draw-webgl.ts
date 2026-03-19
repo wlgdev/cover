@@ -1,6 +1,8 @@
-import { Application, Assets, Texture, Graphics, Filter, BlurFilter, Sprite } from "pixi.js";
-import { ColorGradientFilter, ZoomBlurFilter, TiltShiftFilter, OldFilmFilter, AdjustmentFilter } from "pixi-filters";
+import { Application, Assets, Texture, Graphics, Filter, Sprite } from "pixi.js";
+import { ColorGradientFilter, ZoomBlurFilter, OldFilmFilter, AdjustmentFilter } from "pixi-filters";
 import type { Filters } from "./shared";
+import { createClampedBlurFilters } from "./clamped-blur-filter";
+import { createClampedTiltShiftFilters } from "./clamped-tilt-shift-filter";
 
 type InitOptions<T> = {
   mount_point: HTMLDivElement;
@@ -140,22 +142,12 @@ export abstract class DrawWebGL<T> {
     }
 
     if (settings.blur.enabled) {
-      backrgound.x -= settings.blur.value;
-      backrgound.y -= settings.blur.value;
-      backrgound.width += 2 * settings.blur.value;
-      backrgound.height += 2 * settings.blur.value;
-
-      filters.push(
-        new BlurFilter({
-          strength: settings.blur.value,
-          quality: 15,
-        }),
-      );
+      filters.push(...createClampedBlurFilters(settings.blur.value));
     }
 
     if (settings.tilt_shift.enabled) {
       filters.push(
-        new TiltShiftFilter({
+        ...createClampedTiltShiftFilters({
           blur: settings.tilt_shift.blur,
           start: { x: settings.tilt_shift.start.x, y: settings.tilt_shift.start.y },
           end: { x: settings.tilt_shift.end.x, y: settings.tilt_shift.end.y },
